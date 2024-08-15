@@ -1,6 +1,8 @@
-import torch
-from fmengine.utilities.logging import logger
 from collections import namedtuple
+
+import torch
+
+from fmengine.utilities.logging import logger
 
 GPUMemStats = namedtuple(
     "GPUMemStats",
@@ -13,6 +15,7 @@ GPUMemStats = namedtuple(
         "num_ooms",
     ],
 )
+
 
 class GPUMemoryMonitor:
     def __init__(self, device: str = "cuda:0"):
@@ -66,7 +69,8 @@ class GPUMemoryMonitor:
 
     def reset_peak_stats(self):
         torch.cuda.reset_peak_memory_stats()
-        
+
+
 def build_gpu_memory_monitor():
     gpu_memory_monitor = GPUMemoryMonitor("cuda")
     logger.info(
@@ -75,3 +79,22 @@ def build_gpu_memory_monitor():
     )
 
     return gpu_memory_monitor
+
+
+def get_peak_flops(device_name: str) -> int:
+    if "A100" in device_name:
+        # data from https://www.nvidia.com/en-us/data-center/a100/
+        return 312e12
+    elif "H100" in device_name:
+        # data from https://www.nvidia.com/en-us/data-center/h100/
+        # NOTE: Specifications are one-half lower without sparsity.
+        if "NVL" in device_name:
+            return 1979e12
+        elif "PCIe" in device_name:
+            return 756e12
+        else:  # for SXM and other variants
+            return 989e12
+    elif "3090" in device_name:
+        return 35.58e12
+    else:  # for other GPU types, assume A100
+        return 312e12

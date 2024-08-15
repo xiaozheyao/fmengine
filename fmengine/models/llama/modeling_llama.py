@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
-from .config_llama import LlamaArgs
-from fmengine.core.nn.utils.norms import build_norm
+
 from fmengine.core.nn.attention import CausalSelfAttention
 from fmengine.core.nn.linear import TransformerFeedForward
 from fmengine.core.nn.utils import precompute_freqs_cis
+from fmengine.core.nn.utils.norms import build_norm
+
+from .config_llama import LlamaArgs
+
 
 class LlamaTransformerBlock(nn.Module):
     """
@@ -30,7 +33,28 @@ class LlamaTransformerBlock(nn.Module):
         super().__init__()
         self.n_heads = model_args.n_heads
         self.dim = model_args.dim
-        self.attention = CausalSelfAttention(model_args)
+        self.n_kv_heads = model_args.n_kv_heads
+        self.head_dim = model_args.dim // model_args.n_heads
+        self.wq = nn.Linear(
+            model_args.dim, model_args.n_heads * self.head_dim, bias=False
+        )
+        self.wk = nn.Linear(
+            model_args.dim, self.n_kv_heads * self.head_dim, bias=False)
+        self.wv = nn.Linear(
+            model_args.dim, self.n_kv_heads * self.head_dim, bias=False)
+
+        self.wo = nn.Linear(
+            model_args.n_heads * self.head_dim, model_args.dim, bias=False
+        )
+        self.attention = CausalSelfAttention(
+            num_heads=model_args.n_heads,
+            num_kv_heads=model_args.n_kv_heads,
+            head_dim=model_args.dim // model_args.n_heads,
+            q_proj=self.wq,
+            k_proj=self.wk,
+            v_proj=self.wv,
+            output_proj=self.wo,
+        )
         self.feed_forward = TransformerFeedForward(
             dim=model_args.dim,
             hidden_dim=4 * model_args.dim,
@@ -71,18 +95,21 @@ class LlamaTransformerBlock(nn.Module):
         h = x + self.attention(self.attention_norm(x), freqs_cis)
         out = h + self.feed_forward(self.ffn_norm(h))
         return out
-    
+
+
 class LlamaTransformerModule(nn.Module):
     """
     Llama Module
     """
+
     def __init__(self, model_args: LlamaArgs):
         super().__init__()
         self.model_args = model_args
         self.vocab_size = model_args.vocab_size
         self.n_layers = model_args.n_layers
 
-        self.tok_embeddings = nn.Embedding(model_args.vocab_size, model_args.dim)
+        self.tok_embeddings = nn.Embedding(
+            model_args.vocab_size, model_args.dim)
 
         # TODO persistent should be set to false, since this buffer can be recomputed.
         # however, we set it to true for 2 reasons.  (1) due to pytorch/pytorch#123411,
@@ -91,17 +118,20 @@ class LlamaTransformerModule(nn.Module):
         # a seed checkpoint rather than calling init_weights, we need freqs_cis to be
         # initialized by the checkpoint, or we need to add a separate initializer for
         # just the non-persistent buffers that is called after loading checkpoints.
-        self.register_buffer("freqs_cis", self._precompute_freqs_cis(), persistent=True)
+        self.register_buffer(
+            "freqs_cis", self._precompute_freqs_cis(), persistent=True)
 
         self.layers = torch.nn.ModuleDict()
         for layer_id in range(model_args.n_layers):
-            self.layers[str(layer_id)] = LlamaTransformerBlock(layer_id, model_args)
+            self.layers[str(layer_id)] = LlamaTransformerBlock(
+                layer_id, model_args)
 
         self.norm = build_norm(
             model_args.norm_type, dim=model_args.dim, eps=model_args.norm_eps
         )
 
-        self.output = nn.Linear(model_args.dim, model_args.vocab_size, bias=False)
+        self.output = nn.Linear(
+            model_args.dim, model_args.vocab_size, bias=False)
         self.init_weights()
 
     def init_weights(self):

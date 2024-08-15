@@ -1,14 +1,17 @@
 from dataclasses import dataclass
-from fmengine.utilities.logging import logger
 from functools import cached_property
+
 from torch.distributed.device_mesh import init_device_mesh
+
+from fmengine.utilities.logging import logger
+
 
 @dataclass
 class ParallelDims:
     dp: int
     tp: int
     pp: int
-    world_size: int    
+    world_size: int
     enable_loss_parallel: bool
     dp_type: str
 

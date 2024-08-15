@@ -1,12 +1,11 @@
 from typing import Tuple
 
+from torch.distributed.pipelining import (Schedule1F1B,
+                                          ScheduleFlexibleInterleaved1F1B,
+                                          ScheduleGPipe,
+                                          ScheduleInterleaved1F1B)
+
 from fmengine.utilities.logging import logger
-from torch.distributed.pipelining import (
-    Schedule1F1B,
-    ScheduleFlexibleInterleaved1F1B,
-    ScheduleGPipe,
-    ScheduleInterleaved1F1B,
-)
 
 
 def build_pipeline_schedule(job_config, parallel_dims, stages, loss_fn):

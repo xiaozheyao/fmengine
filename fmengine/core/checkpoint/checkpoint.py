@@ -13,15 +13,14 @@ import torch
 import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
 import torch.nn as nn
-from torch.distributed.checkpoint.state_dict import (
-    get_model_state_dict,
-    get_optimizer_state_dict,
-    set_model_state_dict,
-    set_optimizer_state_dict,
-    StateDictOptions,
-)
+from torch.distributed.checkpoint.state_dict import (StateDictOptions,
+                                                     get_model_state_dict,
+                                                     get_optimizer_state_dict,
+                                                     set_model_state_dict,
+                                                     set_optimizer_state_dict)
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import DataLoader
+
 
 @dataclass
 class TrainState(Stateful):
@@ -57,4 +56,5 @@ class TrainState(Stateful):
             state_dict["global_max_losses"], weights_only=False
         )
         state_dict["log_steps"].seek(0)
-        self.log_steps = torch.load(state_dict["log_steps"], weights_only=False)
+        self.log_steps = torch.load(
+            state_dict["log_steps"], weights_only=False)

@@ -1,12 +1,14 @@
 import os
 
 import typer
-from omegaconf import OmegaConf
 from dacite import from_dict
-from fmengine.core.configs.train_config import TrainJobConfig
+from omegaconf import OmegaConf
+
 from fmengine.cli.trainer import train_entry
+from fmengine.core.configs.train_config import TrainJobConfig
 
 fmengine = typer.Typer()
+
 
 @fmengine.command()
 def train(config: str = typer.Option(..., help="Path to the config file")):
@@ -27,7 +29,8 @@ def train(config: str = typer.Option(..., help="Path to the config file")):
     config = OmegaConf.to_container(config)
     config = from_dict(data_class=TrainJobConfig, data=config)
     train_entry(config)
-    
+
+
 @fmengine.command()
 def inspect():
     pass

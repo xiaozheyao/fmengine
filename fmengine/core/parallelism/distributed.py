@@ -1,6 +1,8 @@
 import os
-import torch
 from datetime import timedelta
+
+import torch
+
 from fmengine.utilities import _warn_overwrite_env
 
 TRACE_BUFFER_SIZE = "TORCH_NCCL_TRACE_BUFFER_SIZE"
@@ -9,7 +11,8 @@ DUMP_ON_TIMEOUT = "TORCH_NCCL_DUMP_ON_TIMEOUT"
 ASYNC_ERROR_HANDLING = "TORCH_NCCL_ASYNC_ERROR_HANDLING"
 SKIP_CLEANUP = "3"
 
-def init__distributed(dump_folder, trace_buf_size=20000, init_timeout_seconds=300):
+
+def init_distributed(dump_folder, trace_buf_size=20000, init_timeout_seconds=300):
     _warn_overwrite_env(ASYNC_ERROR_HANDLING, SKIP_CLEANUP)
     # enable torch nccl flight recorder in the mode that would dump files if timeout is detected
     _warn_overwrite_env(TRACE_BUFFER_SIZE, str(trace_buf_size))

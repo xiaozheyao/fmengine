@@ -5,20 +5,18 @@ from typing import TYPE_CHECKING, Tuple, Union
 import torch
 import torch.nn as nn
 from torch.distributed import DeviceMesh
-from torch.distributed._composable.fsdp import MixedPrecisionPolicy, fully_shard
+from torch.distributed._composable.fsdp import (MixedPrecisionPolicy,
+                                                fully_shard)
 from torch.distributed._composable.replicate import replicate
 from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    checkpoint_wrapper as ptd_checkpoint_wrapper,
-)
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import \
+    checkpoint_wrapper as ptd_checkpoint_wrapper
 from torch.distributed.pipelining import PipelineStage, SplitPoint, pipeline
-from torch.distributed.tensor.parallel import (
-    ColwiseParallel,
-    PrepareModuleInput,
-    RowwiseParallel,
-    SequenceParallel,
-    parallelize_module,
-)
+from torch.distributed.tensor.parallel import (ColwiseParallel,
+                                               PrepareModuleInput,
+                                               RowwiseParallel,
+                                               SequenceParallel,
+                                               parallelize_module)
 
 default_no_recompute_list = [
     torch.ops.aten.mm.default,
@@ -26,6 +24,7 @@ default_no_recompute_list = [
     torch.ops.aten._scaled_dot_product_flash_attention.default,
     torch.ops._c10d_functional.reduce_scatter_tensor.default,
 ]
+
 
 def checkpoint_wrapper(module: torch.nn.Module, ac_config, no_recompute_list=default_no_recompute_list):
     valid_ac_modes = ("full", "selective")
@@ -47,9 +46,7 @@ def checkpoint_wrapper(module: torch.nn.Module, ac_config, no_recompute_list=def
         )
     if use_op_sac:
         from torch.utils.checkpoint import (
-            CheckpointPolicy,
-            create_selective_checkpoint_contexts,
-        )
+            CheckpointPolicy, create_selective_checkpoint_contexts)
 
         def _get_custom_policy(meta):
             def _custom_policy(ctx, func, *args, **kwargs):
@@ -91,7 +88,8 @@ def checkpoint_wrapper(module: torch.nn.Module, ac_config, no_recompute_list=def
             return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
         else:
             return module
-        
+
+
 def get_tp_parallel_strategy_for_transformer_block(
     enable_float8: bool,
 ) -> Tuple[RowwiseParallel, ColwiseParallel, PrepareModuleInput]:
@@ -106,10 +104,8 @@ def get_tp_parallel_strategy_for_transformer_block(
         # TODO(vkuzo): add the items below to __init__.py of torchao.float8,
         # and import from there
         from torchao.float8.float8_tensor_parallel import (
-            Float8ColwiseParallel,
-            Float8RowwiseParallel,
-            PrepareFloat8ModuleInput,
-        )
+            Float8ColwiseParallel, Float8RowwiseParallel,
+            PrepareFloat8ModuleInput)
 
         return Float8RowwiseParallel, Float8ColwiseParallel, PrepareFloat8ModuleInput
     return RowwiseParallel, ColwiseParallel, PrepareModuleInput

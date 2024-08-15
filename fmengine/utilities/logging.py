@@ -1,4 +1,5 @@
 import os
+
 from loguru import logger as _logger
 
 
@@ -15,5 +16,6 @@ class _Logger:
 
     def error(self, msg):
         _logger.error(f"[Rank {self.rank}/{self.world}] {msg}")
+
 
 logger = _Logger()

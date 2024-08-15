@@ -1,6 +1,9 @@
-from torch import nn
 from typing import Optional
+
+from torch import nn
+
 from fmengine.core.nn.utils.activations import get_activation_fn
+
 
 class TransformerFeedForward(nn.Module):
     """
@@ -32,12 +35,14 @@ class TransformerFeedForward(nn.Module):
         # custom dim factor multiplier
         if ffn_dim_multiplier is not None:
             hidden_dim = int(ffn_dim_multiplier * hidden_dim)
-        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+        hidden_dim = multiple_of * \
+            ((hidden_dim + multiple_of - 1) // multiple_of)
 
         self.w1 = nn.Linear(dim, hidden_dim, bias=False)
         self.w2 = nn.Linear(hidden_dim, dim, bias=False)
         self.w3 = nn.Linear(dim, hidden_dim, bias=False)
         self.act = get_activation_fn(activation)
+
     def forward(self, x):
         return self.w2(self.act(self.w1(x)) * self.w3(x))
 

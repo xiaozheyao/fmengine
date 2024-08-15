@@ -1,5 +1,6 @@
 import gc
 
+
 class GarbageCollection:
     def __init__(self, gc_freq=1000):
         assert gc_freq > 0, "gc_freq must be a positive integer"

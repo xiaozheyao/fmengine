@@ -1,5 +1,7 @@
 from typing import Optional
+
 from torch import Tensor, nn
+
 from fmengine.core.nn.utils import KVCache
 
 
@@ -83,7 +85,8 @@ class CausalSelfAttention(nn.Module):
             )
 
         if attn_dropout < 0 or attn_dropout > 1:
-            raise ValueError(f"attn_dropout ({attn_dropout}) must be between 0.0 and 1.0")
+            raise ValueError(
+                f"attn_dropout ({attn_dropout}) must be between 0.0 and 1.0")
 
         # Set attributes
         self.num_heads = num_heads
@@ -171,8 +174,10 @@ class CausalSelfAttention(nn.Module):
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
         if self.num_heads != self.num_kv_heads:
-            k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
+            k = k.expand(bsz, seq_len, self.num_kv_heads,
+                         q_per_kv, self.head_dim)
+            v = v.expand(bsz, seq_len, self.num_kv_heads,
+                         q_per_kv, self.head_dim)
 
         # llama2 applies the RoPE embeddings on tensors with shape
         # [b, s, n_h, h_d]
