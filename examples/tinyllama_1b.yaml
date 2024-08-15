@@ -1,4 +1,5 @@
 model:
+  architecture: llama
   attention_bias: false
   bos_token_id: 1
   eos_token_id: 2
@@ -20,3 +21,19 @@ model:
   transformers_version: 4.35.0
   use_cache: true
   vocab_size: 32000
+
+tokenizer:
+  pretrained: meta-llama/Meta-Llama-3.1-8B-Instruct
+
+checkpoint:
+  ckpt_dir: .local/ckpts
+
+training:
+  gc_freq: 1000
+  dp_degree: 1
+  tp_degree: 1
+  pp_degree: 1
+  enable_loss_parallel: true
+  data_parallel_type: fsdp
+  dump_folder: ./outputs
+  

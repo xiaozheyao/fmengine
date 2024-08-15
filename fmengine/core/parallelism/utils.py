@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from loguru import logger
+from fmengine.utilities.logging import logger
 from torch.distributed.pipelining import (
     Schedule1F1B,
     ScheduleFlexibleInterleaved1F1B,

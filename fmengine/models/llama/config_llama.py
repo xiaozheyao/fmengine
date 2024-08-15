@@ -20,6 +20,5 @@ class LlamaArgs:
     # `False`, each uses the total number of transformer blocks
     depth_init: bool = True
     norm_type: str = "rmsnorm"
-
     activation: str = "silu"
 
