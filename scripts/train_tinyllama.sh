@@ -1,1 +1,0 @@
-torchrun fmengine/cli/main.py train --config=examples

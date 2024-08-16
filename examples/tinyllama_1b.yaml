@@ -3,13 +3,13 @@ model:
   attention_bias: false
   bos_token_id: 1
   eos_token_id: 2
-  hidden_act: silu
-  dim: 2048
+  activation: silu
+  hidden_size: 2048
   initializer_range: 0.02
-  intermediate_size: 4096
+  intermediate_size: 5632
   max_position_embeddings: 2048
   n_heads: 32
-  n_layers: 22
+  n_layers: 24
   n_kv_heads: 4
   rms_norm_eps: 1.0e-05
   rope_theta: 500000
@@ -29,7 +29,7 @@ checkpoint:
 training:
   gc_freq: 1000
   dp_degree: 1
-  tp_degree: 1
+  tp_degree: 2
   pp_degree: 1
   enable_loss_parallel: true
   data_parallel_type: fsdp

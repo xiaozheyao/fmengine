@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 
 from fmengine.models.llama.config_llama import LlamaArgs
@@ -13,6 +13,9 @@ class TokenizerConfig:
 class CheckpointConfig:
     ckpt_dir: str
 
+@dataclass
+class FP8Config:
+    enable_float8_linear: bool = False
 
 @dataclass
 class TrainingConfig:
@@ -23,8 +26,11 @@ class TrainingConfig:
     enable_loss_parallel: bool = False
     data_parallel_type: str = "fsdp"
     dump_folder: str = ".local/output"
-
-
+    enable_async_tensor_parallel: bool = False
+    compile: bool = True
+    # use default_factory
+    float8: FP8Config = field(default_factory=FP8Config)
+    
 @dataclass
 class TrainJobConfig:
     model: Union[LlamaArgs]
