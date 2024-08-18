@@ -9,4 +9,6 @@ def build_model(model_config: Union[LlamaArgs]):
 
         return build_llama_3(model_config)
     else:
-        raise NotImplementedError(f"Architecture {model_config.architecture} not implemented.")
+        raise NotImplementedError(
+            f"Architecture {model_config.architecture} not implemented."
+        )

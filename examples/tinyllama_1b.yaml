@@ -34,3 +34,8 @@ training:
   enable_loss_parallel: true
   data_parallel_type: fsdp
   dump_folder: ./outputs
+
+dataset:
+  name: c4
+  stream: true
+  

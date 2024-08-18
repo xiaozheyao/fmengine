@@ -1,13 +1,11 @@
-import pickle
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import torch
 from datasets import Dataset, load_dataset
 from datasets.distributed import split_dataset_by_node
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import IterableDataset
-from torchdata.stateful_dataloader import StatefulDataLoader
-
+from .tokenizer import Tokenizer
 from fmengine.utilities import logger
 
 _supported_datasets = {

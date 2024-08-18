@@ -168,7 +168,9 @@ class TransformerDecoder(nn.Module):
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
-        self.causal_mask = torch.tril(torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool))
+        self.causal_mask = torch.tril(
+            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
+        )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -177,7 +179,9 @@ class TransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -226,9 +230,13 @@ class TransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
@@ -322,7 +330,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
-        self.causal_mask = torch.tril(torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool))
+        self.causal_mask = torch.tril(
+            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
+        )
 
     def caches_are_enabled(self) -> bool:
         """Check if the key value caches are setup."""
@@ -331,7 +341,9 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
     def reset_caches(self):
         """Reset the key value caches."""
         if not self.caches_are_enabled():
-            raise RuntimeError("Key value caches are not setup. Call ``setup_caches()`` first.")
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
 
         for layer in self.layers:
             layer.reset_cache()
@@ -383,9 +395,13 @@ class TiedEmbeddingTransformerDecoder(nn.Module):
 
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             if mask is not None:
-                raise ValueError("An attention mask was set. Cannot use a non-causal mask for inference")
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]

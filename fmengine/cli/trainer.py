@@ -16,7 +16,12 @@ from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.models.builder import build_model
 from fmengine.models.llama.modeling_llama import parallelize_llama
 from fmengine.models.utils import get_num_params
-from fmengine.utilities import GarbageCollection, build_gpu_memory_monitor, get_peak_flops, logger
+from fmengine.utilities import (
+    GarbageCollection,
+    build_gpu_memory_monitor,
+    get_peak_flops,
+    logger,
+)
 
 
 def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool):
@@ -26,7 +31,9 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
             if enable_loss_parallel:
                 stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
             if enable_compiled_autograd:
-                stack.enter_context(torch._dynamo.utils.maybe_enable_compiled_autograd(True))
+                stack.enter_context(
+                    torch._dynamo.utils.maybe_enable_compiled_autograd(True)
+                )
             yield
 
     return context
@@ -63,7 +70,9 @@ def train_entry(job_config: TrainJobConfig):
     model_param_count = get_num_params(model)
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
-    parallelize_llama(model, world_mesh, parallel_dims, train_config=job_config.training)
+    parallelize_llama(
+        model, world_mesh, parallel_dims, train_config=job_config.training
+    )
     init_device = "cuda"
     model.to_empty(device=init_device)
     model_parts = [model]

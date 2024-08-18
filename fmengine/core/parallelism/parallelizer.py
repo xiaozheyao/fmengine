@@ -6,7 +6,9 @@ from torch.distributed import DeviceMesh
 from torch.distributed._composable.fsdp import MixedPrecisionPolicy, fully_shard
 from torch.distributed._composable.replicate import replicate
 from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import checkpoint_wrapper as ptd_checkpoint_wrapper
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    checkpoint_wrapper as ptd_checkpoint_wrapper,
+)
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     PrepareModuleInput,
@@ -125,7 +127,9 @@ _save_list = {
 def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
     valid_ac_modes = ("full", "selective")
     if ac_config.mode not in valid_ac_modes:
-        raise ValueError(f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}")
+        raise ValueError(
+            f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}"
+        )
 
     if ac_config.mode == "full":
         return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
@@ -139,7 +143,10 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
             f"Valid options: 'op' or a positive int representing layer frequency"
         )
     if use_op_sac:
-        from torch.utils.checkpoint import CheckpointPolicy, create_selective_checkpoint_contexts
+        from torch.utils.checkpoint import (
+            CheckpointPolicy,
+            create_selective_checkpoint_contexts,
+        )
 
         def _get_custom_policy(meta):
             def _custom_policy(ctx, func, *args, **kwargs):
@@ -148,8 +155,14 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
                 if func == torch.ops.aten.mm.default:
                     meta[mm_count_key] += 1
                 # Saves output of all compute ops, except every second mm
-                to_save = func in _save_list and not (func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0)
-                return CheckpointPolicy.MUST_SAVE if to_save else CheckpointPolicy.PREFER_RECOMPUTE
+                to_save = func in _save_list and not (
+                    func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0
+                )
+                return (
+                    CheckpointPolicy.MUST_SAVE
+                    if to_save
+                    else CheckpointPolicy.PREFER_RECOMPUTE
+                )
 
             return _custom_policy
 

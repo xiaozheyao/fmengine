@@ -38,14 +38,18 @@ def get_component_from_path(path: str) -> Any:
     for part in parts:
         # If a relative path is passed in, the first part will be empty
         if not len(part):
-            raise ValueError(f"Error loading '{path}': invalid dotstring." + "\nRelative imports are not supported.")
+            raise ValueError(
+                f"Error loading '{path}': invalid dotstring."
+                + "\nRelative imports are not supported."
+            )
     # First module requires trying to import to validate
     part0 = parts[0]
     try:
         obj = import_module(part0)
     except ImportError as exc_import:
         raise InstantiationError(
-            f"Error loading '{path}':\n{repr(exc_import)}" + f"\nAre you sure that module '{part0}' is installed?"
+            f"Error loading '{path}':\n{repr(exc_import)}"
+            + f"\nAre you sure that module '{part0}' is installed?"
         ) from exc_import
     # Subsequent components can be checked via getattr() on first module
     # It can either be an attribute that we can return or a submodule that we
@@ -71,7 +75,9 @@ def get_component_from_path(path: str) -> Any:
                 # Any other error trying to import module can be raised as
                 # InstantiationError
                 except Exception as exc_import:
-                    raise InstantiationError(f"Error loading '{path}':\n{repr(exc_import)}") from exc_import
+                    raise InstantiationError(
+                        f"Error loading '{path}':\n{repr(exc_import)}"
+                    ) from exc_import
             # If the component is not an attribute nor a module, it doesn't exist
             raise InstantiationError(
                 f"Error loading '{path}':\n{repr(exc_attr)}"

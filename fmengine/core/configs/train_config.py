@@ -52,6 +52,12 @@ class ExperimentalConfig:
 
 
 @dataclass
+class DatasetConfig:
+    name: str = "c4"
+    stream: bool = True
+
+
+@dataclass
 class TrainJobConfig:
     model: Union["LlamaArgs"]
     tokenizer: TokenizerConfig
@@ -59,3 +65,4 @@ class TrainJobConfig:
     training: TrainingConfig
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     experimental: ExperimentalConfig = field(default_factory=ExperimentalConfig)
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)

@@ -18,7 +18,9 @@ def train(config: str = typer.Option(..., help="Path to the config file")):
         raise ValueError(f"Config file not found: {config}")
     # if it is a directory, search for yaml files
     if os.path.isdir(config):
-        config_files = [os.path.join(config, f) for f in os.listdir(config) if f.endswith(".yaml")]
+        config_files = [
+            os.path.join(config, f) for f in os.listdir(config) if f.endswith(".yaml")
+        ]
         typer.echo(f"config files found: {config_files}")
         configs = [OmegaConf.load(f) for f in config_files]
         config = OmegaConf.merge(*configs)
