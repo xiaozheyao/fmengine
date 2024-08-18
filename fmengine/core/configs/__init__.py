@@ -1,5 +1,4 @@
-from .train_config import (CheckpointConfig, FP8Config, OptimizerConfig,
-                           TokenizerConfig, TrainingConfig, TrainJobConfig)
+from .train_config import CheckpointConfig, FP8Config, OptimizerConfig, TokenizerConfig, TrainingConfig, TrainJobConfig
 from .utils import TORCH_DTYPE_MAP, dict_to_config
 
 __all__ = [
@@ -10,5 +9,5 @@ __all__ = [
     "FP8Config",
     "OptimizerConfig",
     "TokenizerConfig",
-    "TrainingConfig"
+    "TrainingConfig",
 ]

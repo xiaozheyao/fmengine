@@ -19,8 +19,7 @@ def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0) -> torch.Te
     Returns:
         torch.Tensor: Precomputed frequency tensor with complex exponentials.
     """
-    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)
-                   [: (dim // 2)].float() / dim))
+    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
     t = torch.arange(end, device=freqs.device)
     freqs = torch.outer(t, freqs).float()
     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
@@ -49,8 +48,7 @@ def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor) -> torch.Ten
     seqlen = x.shape[1]
     freqs_cis = freqs_cis[0:seqlen]
     assert freqs_cis.shape == (seqlen, x.shape[-1])
-    shape = [d if i == 1 or i == ndim -
-             1 else 1 for i, d in enumerate(x.shape)]
+    shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
     return freqs_cis.view(*shape)
 
 

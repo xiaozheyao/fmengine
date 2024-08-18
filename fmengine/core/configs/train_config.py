@@ -29,6 +29,7 @@ class OptimizerConfig:
     weight_decay: float = 0.1
     betas: tuple = (0.9, 0.95)
 
+
 @dataclass
 class TrainingConfig:
     gc_freq: int = 1000
@@ -44,9 +45,11 @@ class TrainingConfig:
     compile: bool = True
     float8: FP8Config = field(default_factory=FP8Config)
 
+
 @dataclass
 class ExperimentalConfig:
     enable_compiled_autograd: bool = False
+
 
 @dataclass
 class TrainJobConfig:

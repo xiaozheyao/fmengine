@@ -8,13 +8,13 @@ config = {
         {
             "sink": sys.stdout,
             "enqueue": True,
-            "format": "<level>[Rank {extra[rank]}/{extra[world]}] [{time:YYYY-MM-DD HH:mm:ss}] [{level}]:</> {message}"
+            "format": "<level>[Rank {extra[rank]}/{extra[world]}] [{time:YYYY-MM-DD HH:mm:ss}] [{level}]:</> {message}",
         },
     ],
     "extra": {
         "rank": os.environ.get("LOCAL_RANK", 0),
         "world": os.environ.get("WORLD_SIZE", 1),
-    }
+    },
 }
 
 

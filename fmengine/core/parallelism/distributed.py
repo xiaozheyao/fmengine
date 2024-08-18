@@ -23,9 +23,7 @@ def init_distributed(dump_folder, trace_buf_size=20000, init_timeout_seconds=300
         os.makedirs(dump_dir, exist_ok=True)
         _warn_overwrite_env(TRACE_FILE, f"{dump_dir}/rank_")
 
-    torch.distributed.init_process_group(
-        "nccl", timeout=timedelta(seconds=init_timeout_seconds)
-    )
+    torch.distributed.init_process_group("nccl", timeout=timedelta(seconds=init_timeout_seconds))
 
     # to mitigate the memory issue that collectives using
     # async_op=True hold memory longer than they should

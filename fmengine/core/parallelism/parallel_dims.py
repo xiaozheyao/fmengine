@@ -34,9 +34,7 @@ class ParallelDims:
     def build_mesh(self, device_type):
         dims = []
         names = []
-        for d, name in zip(
-            [self.pp, self.dp, self.tp], ["pp", "dp", "tp"], strict=True
-        ):
+        for d, name in zip([self.pp, self.dp, self.tp], ["pp", "dp", "tp"], strict=True):
             if d > 1:
                 dims.append(d)
                 names.append(name)

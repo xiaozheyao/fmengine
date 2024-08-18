@@ -13,11 +13,13 @@ import torch
 import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
 import torch.nn as nn
-from torch.distributed.checkpoint.state_dict import (StateDictOptions,
-                                                     get_model_state_dict,
-                                                     get_optimizer_state_dict,
-                                                     set_model_state_dict,
-                                                     set_optimizer_state_dict)
+from torch.distributed.checkpoint.state_dict import (
+    StateDictOptions,
+    get_model_state_dict,
+    get_optimizer_state_dict,
+    set_model_state_dict,
+    set_optimizer_state_dict,
+)
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import DataLoader
 
@@ -50,9 +52,7 @@ class ModelWrapper(Stateful):
         self.model = [model] if isinstance(model, nn.Module) else model
 
     def state_dict(self) -> None:
-        return {
-            k: v for sd in map(get_model_state_dict, self.model) for k, v in sd.items()
-        }
+        return {k: v for sd in map(get_model_state_dict, self.model) for k, v in sd.items()}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         func = functools.partial(
@@ -70,8 +70,7 @@ class OptimizerWrapper(Stateful):
         optim: Union[torch.optim.Optimizer, List[torch.optim.Optimizer]],
     ) -> None:
         self.model = [model] if isinstance(model, nn.Module) else model
-        self.optim = [optim] if isinstance(
-            optim, torch.optim.Optimizer) else optim
+        self.optim = [optim] if isinstance(optim, torch.optim.Optimizer) else optim
 
     def state_dict(self) -> None:
         func = functools.partial(
@@ -109,8 +108,7 @@ def checkpoint_mp(recv, send):
             state, checkpoint_id = obj
             dcp.save(state, checkpoint_id=checkpoint_id)
             logger.info(
-                "Finish saving the checkpoint in the background process in "
-                f"{time.monotonic() - begin:.2f} seconds."
+                "Finish saving the checkpoint in the background process in " f"{time.monotonic() - begin:.2f} seconds."
             )
     finally:
         logger.info("Destroying the process group.")
@@ -158,19 +156,11 @@ class CheckpointManager:
 
             TODO: This is currently unsolved and needs a fix.
         """
-        assert len(model_parts) == len(
-            optimizers
-        ), "Must pass one optimizer per model part"
-        assert len(model_parts) == len(
-            lr_schedulers
-        ), "Must pass one lr_scheduler per model part"
+        assert len(model_parts) == len(optimizers), "Must pass one optimizer per model part"
+        assert len(model_parts) == len(lr_schedulers), "Must pass one lr_scheduler per model part"
 
-        assert len(model_parts) == len(
-            optimizers
-        ), "Must pass one optimizer per model part"
-        assert len(model_parts) == len(
-            lr_schedulers
-        ), "Must pass one lr_scheduler per model part"
+        assert len(model_parts) == len(optimizers), "Must pass one optimizer per model part"
+        assert len(model_parts) == len(lr_schedulers), "Must pass one lr_scheduler per model part"
 
         self.states = states
 
@@ -190,11 +180,7 @@ class CheckpointManager:
                 self.states[f"lr_scheduler_{idx}"] = lr_scheduler
 
         self.folder = os.path.join(ckpt_config.ckpt_dir)
-        self.interval_type = (
-            IntervalType.SECONDS
-            if ckpt_config.interval_type == "seconds"
-            else IntervalType.STEPS
-        )
+        self.interval_type = IntervalType.SECONDS if ckpt_config.interval_type == "seconds" else IntervalType.STEPS
         self.interval = ckpt_config.interval
         self.begin_time = 0
         self.time_sync_work = None
@@ -231,12 +217,9 @@ class CheckpointManager:
             self.staging_id = None
             self.staging_stream = torch.cuda.Stream()
         else:
-            raise ValueError(
-                f"Unkown checkpoint async_mode {ckpt_config.async_mode}")
+            raise ValueError(f"Unkown checkpoint async_mode {ckpt_config.async_mode}")
 
-        logger.info(
-            f"Checkpointing active. Checkpoints will be loaded from and saved to {self.folder}"
-        )
+        logger.info(f"Checkpointing active. Checkpoints will be loaded from and saved to {self.folder}")
 
     def __del__(self):
         if self.enable_checkpoint and self.mp and self.mp.is_alive():
@@ -268,16 +251,12 @@ class CheckpointManager:
             self.states.pop("freqs_cis")
 
             if self.export_dtype != torch.float32:
-                self.states = {
-                    k: v.to(self.export_dtype) for k, v in self.states.items()
-                }
+                self.states = {k: v.to(self.export_dtype) for k, v in self.states.items()}
             logger.info(
-                f"Saving a model weights only checkpoint in {self.export_dtype} "
-                f"at last step, step {curr_step}."
+                f"Saving a model weights only checkpoint in {self.export_dtype} " f"at last step, step {curr_step}."
             )
         else:
-            logger.info(
-                f"Saving a full checkpoint at last step, step {curr_step}.")
+            logger.info(f"Saving a full checkpoint at last step, step {curr_step}.")
 
         dcp.save(self.states, checkpoint_id=self._create_checkpoint_id(curr_step))
         self.reset()
@@ -287,18 +266,13 @@ class CheckpointManager:
             return False
 
         if not force:
-            if self.interval_type == IntervalType.STEPS and not (
-                curr_step % self.interval == 0
-            ):
+            if self.interval_type == IntervalType.STEPS and not (curr_step % self.interval == 0):
                 return False
             if self.interval_type == IntervalType.SECONDS:
-                time_sync_result = (time.monotonic() -
-                                    self.begin_time) >= self.interval
+                time_sync_result = (time.monotonic() - self.begin_time) >= self.interval
                 self.time_sync_result = torch.tensor(int(time_sync_result))
                 if self.time_sync_work is None:
-                    self.time_sync_work = dist.all_reduce(
-                        self.time_sync_result, group=self.pg, async_op=True
-                    )
+                    self.time_sync_work = dist.all_reduce(self.time_sync_result, group=self.pg, async_op=True)
                     return False
                 elif curr_step % 5 == 4:
                     self.time_sync_work.wait()
@@ -319,12 +293,9 @@ class CheckpointManager:
 
     def _async_wait(self) -> None:
         if self.async_mode == AsyncMode.ASYNC_WITH_PINNED_MEM:
-            logger.debug(
-                f"Waiting for the background process to finish, {time.monotonic()=}.:.2f"
-            )
+            logger.debug(f"Waiting for the background process to finish, {time.monotonic()=}.:.2f")
             if not self.mp.is_alive():
-                raise RuntimeError(
-                    "The checkpoint background process is dead.")
+                raise RuntimeError("The checkpoint background process is dead.")
             _ = self.mp_queue_recv.get()
         elif self.async_mode == AsyncMode.ASYNC:
             if self.async_future is not None:
@@ -332,8 +303,7 @@ class CheckpointManager:
 
     def _async_with_pinned_memory(self, checkpoint_id: str) -> None:
         try:
-            from torch.distributed._state_dict_utils import (
-                _copy_state_dict, _create_cpu_state_dict)
+            from torch.distributed._state_dict_utils import _copy_state_dict, _create_cpu_state_dict
         except ImportError as e:
             raise ImportError(
                 "Please install the latest PyTorch nightly to use async checkpointing with pinned memory."
@@ -341,9 +311,7 @@ class CheckpointManager:
         state_dict = dcp.state_dict_saver._stateful_to_state_dict(self.states)
         if self.cpu_offload_state_dict is None:
             logger.debug(f"Preparing the CPU memory, {time.monotonic()=}.:.2f")
-            self.cpu_offload_state_dict = _create_cpu_state_dict(
-                state_dict, pin_memory=True
-            )
+            self.cpu_offload_state_dict = _create_cpu_state_dict(state_dict, pin_memory=True)
 
         logger.debug(f"Staging the state_dict, {time.monotonic()=}.:.2f")
         with torch.cuda.stream(self.staging_stream):
@@ -374,9 +342,7 @@ class CheckpointManager:
         elif self.async_mode == AsyncMode.ASYNC_WITH_PINNED_MEM:
             self._async_with_pinned_memory(checkpoint_id)
         elif self.async_mode == AsyncMode.ASYNC:
-            self.async_future = dcp.async_save(
-                self.states, checkpoint_id=checkpoint_id, process_group=self.pg
-            )
+            self.async_future = dcp.async_save(self.states, checkpoint_id=checkpoint_id, process_group=self.pg)
         else:
             dcp.save(self.states, checkpoint_id=checkpoint_id)
         self.reset()
@@ -388,16 +354,10 @@ class CheckpointManager:
         )
 
     def maybe_wait_for_staging(self) -> None:
-        if (
-            self.enable_checkpoint
-            and self.async_mode == AsyncMode.ASYNC_WITH_PINNED_MEM
-            and self.staging
-        ):
+        if self.enable_checkpoint and self.async_mode == AsyncMode.ASYNC_WITH_PINNED_MEM and self.staging:
             logger.debug(f"Waiting for staging, {time.monotonic()=:.2f}.")
             self.staging_stream.synchronize()
-            logger.debug(
-                f"Sending the state dict to the background process, {time.monotonic()=:.2f}."
-            )
+            logger.debug(f"Sending the state dict to the background process, {time.monotonic()=:.2f}.")
             self.mp_queue_send.put((self.staging_state_dict, self.staging_id))
             self.staging = False
 
@@ -413,8 +373,7 @@ class CheckpointManager:
             step_counts = []
             for filename in os.listdir(self.folder):
                 match = re.search(r"step-(\d+)", filename)
-                metadata_probe = os.path.join(
-                    self.folder, filename, ".metadata")
+                metadata_probe = os.path.join(self.folder, filename, ".metadata")
                 if match and os.path.isfile(metadata_probe):
                     step_counts.append(int(match.group(1)))
             if not step_counts:
@@ -429,9 +388,7 @@ class CheckpointManager:
             states,
             checkpoint_id=self._create_checkpoint_id(step),
         )
-        logger.info(
-            f"Finished loading the checkpoint in {time.monotonic() - begin:.2f} seconds."
-        )
+        logger.info(f"Finished loading the checkpoint in {time.monotonic() - begin:.2f} seconds.")
         return True
 
     def _purge_stale_checkpoints(self):

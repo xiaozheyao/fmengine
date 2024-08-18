@@ -3,17 +3,17 @@ from collections import defaultdict
 import torch
 import torch.nn as nn
 from torch.distributed import DeviceMesh
-from torch.distributed._composable.fsdp import (MixedPrecisionPolicy,
-                                                fully_shard)
+from torch.distributed._composable.fsdp import MixedPrecisionPolicy, fully_shard
 from torch.distributed._composable.replicate import replicate
 from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import \
-    checkpoint_wrapper as ptd_checkpoint_wrapper
-from torch.distributed.tensor.parallel import (ColwiseParallel,
-                                               PrepareModuleInput,
-                                               RowwiseParallel,
-                                               SequenceParallel,
-                                               parallelize_module)
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import checkpoint_wrapper as ptd_checkpoint_wrapper
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    PrepareModuleInput,
+    RowwiseParallel,
+    SequenceParallel,
+    parallelize_module,
+)
 
 from fmengine.utilities.logging import logger
 
@@ -54,8 +54,10 @@ def apply_tp(
         # add a check here to enforce supported float8 all-gather configurations
         # TODO(vkuzo): add the items below to __init__.py of torchao.float8 and import from there
         from torchao.float8.float8_tensor_parallel import (
-            Float8ColwiseParallel, Float8RowwiseParallel,
-            PrepareFloat8ModuleInput)
+            Float8ColwiseParallel,
+            Float8RowwiseParallel,
+            PrepareFloat8ModuleInput,
+        )
 
         rowwise_parallel, colwise_parallel, prepare_module_input = (
             Float8RowwiseParallel,
@@ -101,8 +103,7 @@ def apply_tp(
         )
 
     if enable_async_tp:
-        from torch.distributed._symmetric_memory import \
-            enable_symm_mem_for_group
+        from torch.distributed._symmetric_memory import enable_symm_mem_for_group
 
         torch._inductor.config._micro_pipeline_tp = True
         enable_symm_mem_for_group(tp_mesh.get_group().group_name)
@@ -124,9 +125,7 @@ _save_list = {
 def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
     valid_ac_modes = ("full", "selective")
     if ac_config.mode not in valid_ac_modes:
-        raise ValueError(
-            f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}"
-        )
+        raise ValueError(f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}")
 
     if ac_config.mode == "full":
         return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
@@ -140,8 +139,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
             f"Valid options: 'op' or a positive int representing layer frequency"
         )
     if use_op_sac:
-        from torch.utils.checkpoint import (
-            CheckpointPolicy, create_selective_checkpoint_contexts)
+        from torch.utils.checkpoint import CheckpointPolicy, create_selective_checkpoint_contexts
 
         def _get_custom_policy(meta):
             def _custom_policy(ctx, func, *args, **kwargs):
@@ -150,14 +148,8 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
                 if func == torch.ops.aten.mm.default:
                     meta[mm_count_key] += 1
                 # Saves output of all compute ops, except every second mm
-                to_save = func in _save_list and not (
-                    func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0
-                )
-                return (
-                    CheckpointPolicy.MUST_SAVE
-                    if to_save
-                    else CheckpointPolicy.PREFER_RECOMPUTE
-                )
+                to_save = func in _save_list and not (func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0)
+                return CheckpointPolicy.MUST_SAVE if to_save else CheckpointPolicy.PREFER_RECOMPUTE
 
             return _custom_policy
 
@@ -184,9 +176,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
 def apply_ac(model: nn.Module, ac_config):
     """Apply activation checkpointing to the model."""
     for layer_id, transformer_block in model.layers.named_children():
-        transformer_block = _apply_ac_to_transformer_block(
-            transformer_block, ac_config)
+        transformer_block = _apply_ac_to_transformer_block(transformer_block, ac_config)
         model.layers.register_module(layer_id, transformer_block)
 
-    logger.info(
-        f"Applied {ac_config.mode} activation checkpointing to the model")
+    logger.info(f"Applied {ac_config.mode} activation checkpointing to the model")

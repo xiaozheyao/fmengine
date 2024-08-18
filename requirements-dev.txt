@@ -12,3 +12,4 @@ black
 sphinx-autobuild
 myst-parser
 furo
+pyproject-flake8==5.0.4

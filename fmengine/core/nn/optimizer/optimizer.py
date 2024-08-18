@@ -23,11 +23,9 @@ def build_optimizer(model_parts, optimizer_config: OptimizerConfig):
         }
         if name == "adam":
             # TODO: make the optimizer options configurable by toml/cmd args
-            optimizer = torch.optim.Adam(
-                model.parameters(), **optimizer_kwargs)
+            optimizer = torch.optim.Adam(model.parameters(), **optimizer_kwargs)
         elif name == "adamw":
-            optimizer = torch.optim.AdamW(
-                model.parameters(), **optimizer_kwargs)
+            optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
         else:
             raise NotImplementedError(f"Optimizer {name} not added.")
 

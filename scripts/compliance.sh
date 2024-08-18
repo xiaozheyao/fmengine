@@ -14,7 +14,7 @@ black fmengine examples --verbose --config black.toml > /dev/null
 
 echo "Running linters"
 
-if flake8 fmengine ; then
+if flake8 --max-line-length 120 fmengine ; then
     echo "No flake8 errors"
 else
     echo "flake8 errors"

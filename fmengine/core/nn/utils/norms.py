@@ -52,11 +52,7 @@ class RMSNorm(nn.Module):
         super().__init__()
         self.eps = eps
         self.weight = nn.Parameter(torch.ones(dim))
-        self.rmsnorm_fn = (
-            torch.compile(self.compute_rmsnorm, fullgraph=True)
-            if compile
-            else self.compute_rmsnorm
-        )
+        self.rmsnorm_fn = torch.compile(self.compute_rmsnorm, fullgraph=True) if compile else self.compute_rmsnorm
 
     @staticmethod
     def compute_rmsnorm(x: torch.Tensor, weight: torch.Tensor, eps: float):
@@ -170,10 +166,8 @@ def _rms_norm_bwd_kernel_sm(
     row_end = min(row_start + rows_per_program, M)
     for row in range(row_start, row_end):
         # Load input, output gradient, and reciprocal standard deviation
-        x = tl.load(X + row * stride_x + cols,
-                    mask=mask, other=0.0).to(tl.float32)
-        dy = tl.load(DY + row * stride_dy + cols,
-                     mask=mask, other=0.0).to(tl.float32)
+        x = tl.load(X + row * stride_x + cols, mask=mask, other=0.0).to(tl.float32)
+        dy = tl.load(DY + row * stride_dy + cols, mask=mask, other=0.0).to(tl.float32)
         rstd = tl.load(Rstd + row)
 
         # Compute normalized input and gradients
@@ -217,7 +211,9 @@ class TritonFusedRMSNorm(torch.autograd.Function):
         if N > block_N:
             raise ValueError(f"N {N} must be <= {block_N=}")
 
-        def grid(meta): return (M,)
+        def grid(meta):
+            return (M,)
+
         _rms_norm_fwd_kernel[grid](
             x,
             x.stride(0),
@@ -258,10 +254,8 @@ class TritonFusedRMSNorm(torch.autograd.Function):
         dx = torch.empty_like(x)
         dw = torch.empty_like(weight)
 
-        sm_count = torch.cuda.get_device_properties(
-            x.device).multi_processor_count
-        _dw = torch.empty((sm_count, N), dtype=torch.float32,
-                          device=weight.device)
+        sm_count = torch.cuda.get_device_properties(x.device).multi_processor_count
+        _dw = torch.empty((sm_count, N), dtype=torch.float32, device=weight.device)
 
         max_size = 65536 // x.element_size()
         block_N = min(max_size, triton.next_power_of_2(N))
@@ -270,7 +264,9 @@ class TritonFusedRMSNorm(torch.autograd.Function):
         if N > block_N:
             raise ValueError(f"N {N} must be <= {block_N=}")
 
-        def grid(meta): return (sm_count,)
+        def grid(meta):
+            return (sm_count,)
+
         _rms_norm_bwd_kernel_sm[grid](
             x,
             x.stride(0),

@@ -13,11 +13,13 @@ import torch
 import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
 import torch.nn as nn
-from torch.distributed.checkpoint.state_dict import (StateDictOptions,
-                                                     get_model_state_dict,
-                                                     get_optimizer_state_dict,
-                                                     set_model_state_dict,
-                                                     set_optimizer_state_dict)
+from torch.distributed.checkpoint.state_dict import (
+    StateDictOptions,
+    get_model_state_dict,
+    get_optimizer_state_dict,
+    set_model_state_dict,
+    set_optimizer_state_dict,
+)
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import DataLoader
 
@@ -48,13 +50,8 @@ class TrainState(Stateful):
     def load_state_dict(self, state_dict) -> None:
         self.step = state_dict["step"].item()
         state_dict["global_avg_losses"].seek(0)
-        self.global_avg_losses = torch.load(
-            state_dict["global_avg_losses"], weights_only=False
-        )
+        self.global_avg_losses = torch.load(state_dict["global_avg_losses"], weights_only=False)
         state_dict["global_max_losses"].seek(0)
-        self.global_max_losses = torch.load(
-            state_dict["global_max_losses"], weights_only=False
-        )
+        self.global_max_losses = torch.load(state_dict["global_max_losses"], weights_only=False)
         state_dict["log_steps"].seek(0)
-        self.log_steps = torch.load(
-            state_dict["log_steps"], weights_only=False)
+        self.log_steps = torch.load(state_dict["log_steps"], weights_only=False)
