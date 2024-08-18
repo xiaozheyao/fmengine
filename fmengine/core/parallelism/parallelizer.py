@@ -3,28 +3,27 @@ from collections import defaultdict
 import torch
 import torch.nn as nn
 from torch.distributed import DeviceMesh
-from torch.distributed._composable.fsdp import fully_shard, MixedPrecisionPolicy
+from torch.distributed._composable.fsdp import (MixedPrecisionPolicy,
+                                                fully_shard)
 from torch.distributed._composable.replicate import replicate
 from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    checkpoint_wrapper as ptd_checkpoint_wrapper,
-)
-from torch.distributed.tensor.parallel import (
-    ColwiseParallel,
-    parallelize_module,
-    PrepareModuleInput,
-    RowwiseParallel,
-    SequenceParallel,
-)
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import \
+    checkpoint_wrapper as ptd_checkpoint_wrapper
+from torch.distributed.tensor.parallel import (ColwiseParallel,
+                                               PrepareModuleInput,
+                                               RowwiseParallel,
+                                               SequenceParallel,
+                                               parallelize_module)
 
 from fmengine.utilities.logging import logger
+
 
 def apply_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
     loss_parallel: bool,
-    enable_float8: bool=False,
-    enable_async_tp: bool=False,
+    enable_float8: bool = False,
+    enable_async_tp: bool = False,
 ):
     """Apply tensor parallelism."""
     # 1. Parallelize the embedding and shard its outputs (which are the first
@@ -55,10 +54,8 @@ def apply_tp(
         # add a check here to enforce supported float8 all-gather configurations
         # TODO(vkuzo): add the items below to __init__.py of torchao.float8 and import from there
         from torchao.float8.float8_tensor_parallel import (
-            Float8ColwiseParallel,
-            Float8RowwiseParallel,
-            PrepareFloat8ModuleInput,
-        )
+            Float8ColwiseParallel, Float8RowwiseParallel,
+            PrepareFloat8ModuleInput)
 
         rowwise_parallel, colwise_parallel, prepare_module_input = (
             Float8RowwiseParallel,
@@ -76,7 +73,7 @@ def apply_tp(
     # NOTE: At the cost of model code change, we can accelerate Sequence Parallel
     #       by folding (and unfolding) the batch dimension and the sequence dimension.
     #       Examples can be found at https://github.com/pytorch/torchtitan/pull/437
-    for layer_id, transformer_block in model.layers.items():
+    for transformer_block in model.layers:
         layer_plan = {
             "self_attn_norm": SequenceParallel(),
             "attn": prepare_module_input(
@@ -104,7 +101,8 @@ def apply_tp(
         )
 
     if enable_async_tp:
-        from torch.distributed._symmetric_memory import enable_symm_mem_for_group
+        from torch.distributed._symmetric_memory import \
+            enable_symm_mem_for_group
 
         torch._inductor.config._micro_pipeline_tp = True
         enable_symm_mem_for_group(tp_mesh.get_group().group_name)
@@ -113,13 +111,15 @@ def apply_tp(
         f"Applied {'Float8 ' if enable_float8 else ''}{'Async ' if enable_async_tp else ''}"
         "Tensor Parallelism to the model"
     )
-    
+
+
 _save_list = {
     torch.ops.aten.mm.default,
     torch.ops.aten._scaled_dot_product_efficient_attention.default,
     torch.ops.aten._scaled_dot_product_flash_attention.default,
     torch.ops._c10d_functional.reduce_scatter_tensor.default,
 }
+
 
 def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
     valid_ac_modes = ("full", "selective")
@@ -141,9 +141,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
         )
     if use_op_sac:
         from torch.utils.checkpoint import (
-            CheckpointPolicy,
-            create_selective_checkpoint_contexts,
-        )
+            CheckpointPolicy, create_selective_checkpoint_contexts)
 
         def _get_custom_policy(meta):
             def _custom_policy(ctx, func, *args, **kwargs):
@@ -182,10 +180,13 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
         else:
             return module
 
+
 def apply_ac(model: nn.Module, ac_config):
     """Apply activation checkpointing to the model."""
     for layer_id, transformer_block in model.layers.named_children():
-        transformer_block = _apply_ac_to_transformer_block(transformer_block, ac_config)
+        transformer_block = _apply_ac_to_transformer_block(
+            transformer_block, ac_config)
         model.layers.register_module(layer_id, transformer_block)
 
-    logger.info(f"Applied {ac_config.mode} activation checkpointing to the model")
+    logger.info(
+        f"Applied {ac_config.mode} activation checkpointing to the model")

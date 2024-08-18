@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from fmengine.core.nn.attention import CausalSelfAttention
+from fmengine.core.nn import CausalSelfAttention, FeedForward
 
 from .utils import _get_clones
 
@@ -13,7 +13,7 @@ class TransformerDecoderLayer(nn.Module):
     def __init__(
         self,
         attn: CausalSelfAttention,
-        mlp: nn.Module,
+        mlp: FeedForward,
         self_attn_norm: nn.Module,
         mlp_norm: nn.Module,
     ):
@@ -22,6 +22,7 @@ class TransformerDecoderLayer(nn.Module):
         self.mlp = mlp
         self.self_attn_norm = self_attn_norm
         self.mlp_norm = mlp_norm
+        self.layer_id = None
 
     def setup_cache(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -31,6 +32,14 @@ class TransformerDecoderLayer(nn.Module):
             dtype (torch.dtype): dtype for the caches.
         """
         self.attn.setup_cache(batch_size, dtype)
+
+    def set_layer_id(self, layer_id: int):
+        """Set the layer id for the attention module.
+
+        Args:
+            layer_id (int): layer id for the attention module.
+        """
+        self.layer_id = layer_id
 
     @property
     def cache_enabled(self) -> bool:
@@ -86,6 +95,14 @@ class TransformerDecoderLayer(nn.Module):
         out = h + mlp_out
         return out
 
+    def init_weights(self, init_std: Optional[float] = None):
+        if init_std is None:
+            init_std = 0.02 / (2 * (self.layer_id + 1)) ** 0.5
+        self.attn.init_weights(init_std)
+        self.mlp.init_weights(init_std)
+        for norm in [self.self_attn_norm, self.mlp_norm]:
+            norm.reset_parameters()
+
 
 class TransformerDecoder(nn.Module):
     """
@@ -129,6 +146,9 @@ class TransformerDecoder(nn.Module):
 
         self.tok_embeddings = tok_embeddings
         self.layers = _get_clones(layer, num_layers)
+        for id, layer in enumerate(self.layers):
+            layer.set_layer_id(id)
+
         self.norm = norm
         self.output = output
         self.max_seq_len = max_seq_len
@@ -231,6 +251,24 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
         return output
+
+    def init_weights(self):
+        for layer in self.layers:
+            layer.init_weights()
+        if self.tok_embeddings is not None:
+            nn.init.normal_(self.tok_embeddings.weight)
+        if self.norm is not None:
+            self.norm.reset_parameters()
+        final_out_std = (self.head_dim * self.num_heads) ** -0.5
+        cutoff_factor = 3
+        if self.output is not None:
+            nn.init.trunc_normal_(
+                self.output.weight,
+                mean=0.0,
+                std=final_out_std,
+                a=-cutoff_factor * final_out_std,
+                b=cutoff_factor * final_out_std,
+            )
 
 
 class TiedEmbeddingTransformerDecoder(nn.Module):

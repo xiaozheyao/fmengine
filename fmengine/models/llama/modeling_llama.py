@@ -2,20 +2,16 @@ import torch
 import torch.nn as nn
 from torch.distributed import DeviceMesh
 
-from fmengine.core.nn import (
-    FeedForward,
-    Llama3ScaledRoPE,
-    CausalSelfAttention,
-    TransformerDecoder,
-    TransformerDecoderLayer,
-    TiedEmbeddingTransformerDecoder,
-    RMSNorm,
-)
+from fmengine.core.configs.train_config import TrainingConfig
+from fmengine.core.nn import (CausalSelfAttention, FeedForward,
+                              Llama3ScaledRoPE, RMSNorm,
+                              TiedEmbeddingTransformerDecoder,
+                              TransformerDecoder, TransformerDecoderLayer)
 from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.core.parallelism.parallelizer import apply_tp
-from fmengine.core.configs.train_config import TrainingConfig
 
 from .config_llama import LlamaArgs
+
 
 def build_llama_3(args: LlamaArgs):
     head_dim = args.hidden_size // args.n_heads
@@ -44,8 +40,9 @@ def build_llama_3(args: LlamaArgs):
         args.ffn_dim_multiplier
 
     # build mlp module...
-    mlp = FeedForward(dim=args.hidden_size, hidden_dim=hidden_dim, activation=args.activation)
-    
+    mlp = FeedForward(dim=args.hidden_size,
+                      hidden_dim=hidden_dim, activation=args.activation)
+
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
@@ -64,6 +61,7 @@ def build_llama_3(args: LlamaArgs):
         norm=RMSNorm(args.hidden_size, args.norm_eps),
         output=output_proj,
     )
+
 
 def parallelize_llama(
     model: nn.Module,

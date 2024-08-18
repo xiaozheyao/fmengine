@@ -1,8 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
-
-from fmengine.core.nn.utils import (apply_rotary_emb, precompute_freqs_cis,
-                                    repeat_kv, reshape_for_broadcast)
+from typing import Optional
 
 
 @dataclass

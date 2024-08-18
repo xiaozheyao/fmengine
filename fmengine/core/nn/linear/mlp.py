@@ -20,3 +20,8 @@ class FeedForward(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(self.activation(self.w1(x)) * self.w3(x))
+
+    def init_weights(self, init_std: float):
+        for linear in [self.w2, self.w3]:
+            nn.init.trunc_normal_(linear.weight, mean=0.0, std=init_std)
+        nn.init.trunc_normal_(self.w1.weight, mean=0.0, std=0.02)

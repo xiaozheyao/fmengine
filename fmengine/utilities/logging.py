@@ -1,5 +1,6 @@
 import os
 import sys
+
 from loguru import logger as logger
 
 config = {
@@ -7,7 +8,7 @@ config = {
         {
             "sink": sys.stdout,
             "enqueue": True,
-            "format":"<level>[Rank {extra[rank]}/{extra[world]}] [{time:YYYY-MM-DD HH:mm:ss}] [{level}]:</> {message}"
+            "format": "<level>[Rank {extra[rank]}/{extra[world]}] [{time:YYYY-MM-DD HH:mm:ss}] [{level}]:</> {message}"
         },
     ],
     "extra": {
@@ -18,4 +19,3 @@ config = {
 
 
 logger.configure(**config)
-

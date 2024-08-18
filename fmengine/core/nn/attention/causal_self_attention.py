@@ -216,3 +216,8 @@ class CausalSelfAttention(nn.Module):
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
         return self.output_proj(output)
+
+    def init_weights(self, init_std: float):
+        for linear in [self.q_proj, self.k_proj, self.v_proj]:
+            nn.init.trunc_normal_(linear.weight, mean=0.0, std=0.02)
+        nn.init.trunc_normal_(self.output_proj.weight, mean=0.0, std=init_std)

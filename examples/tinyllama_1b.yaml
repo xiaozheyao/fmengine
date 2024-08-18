@@ -29,7 +29,7 @@ checkpoint:
 training:
   gc_freq: 1000
   dp_degree: 1
-  tp_degree: 2
+  tp_degree: 1
   pp_degree: 1
   enable_loss_parallel: true
   data_parallel_type: fsdp
