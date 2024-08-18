@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Optional, Union
 
 from fmengine.models.llama.config_llama import LlamaArgs
 
 
 @dataclass
 class TokenizerConfig:
-    pretrained: str
+    tokenizer_type: str
+    tokenizer_name_or_path: str
 
 
 @dataclass
@@ -14,8 +15,12 @@ class CheckpointConfig:
     ckpt_dir: str
     keep_latest_k: int = 5
     enable_checkpoint: bool = True
-
-
+    interval: int = 1000
+    interval_type: str = "steps"
+    model_weights_only: bool = False
+    export_dtype: str = "float16"
+    async_mode: str = "async"
+    
 @dataclass
 class FP8Config:
     enable_float8_linear: bool = False
@@ -55,6 +60,9 @@ class ExperimentalConfig:
 class DatasetConfig:
     name: str = "c4"
     stream: bool = True
+    path: Optional[str] = None
+    batch_size: int = 4
+    seq_len: int = 1024
 
 
 @dataclass

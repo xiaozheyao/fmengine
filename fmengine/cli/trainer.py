@@ -13,6 +13,8 @@ from fmengine.core.nn import build_lr_scheduler, build_optimizer
 from fmengine.core.nn.loss import cross_entropy_loss
 from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.core.parallelism.parallel_dims import ParallelDims
+from fmengine.datasets import build_hf_data_loader
+from fmengine.datasets.tokenizer import build_tokenizer
 from fmengine.models.builder import build_model
 from fmengine.models.llama.modeling_llama import parallelize_llama
 from fmengine.models.utils import get_num_params
@@ -93,23 +95,36 @@ def train_entry(job_config: TrainJobConfig):
     # Build optimizer and scheduler
     optimizer = build_optimizer(model_parts, job_config.optimizer)
     scheduler = build_lr_scheduler(optimizer.optimizers, job_config)
-
+    tokenizer = build_tokenizer(
+        job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path
+    )
+    # build dataloader
+    data_loader = build_hf_data_loader(
+        job_config.dataset.name,
+        job_config.dataset.path,
+        tokenizer,
+        job_config.dataset.batch_size,
+        job_config.dataset.seq_len,
+        dp_degree,
+        dp_rank,
+    )
     train_state = TrainState()
 
     # load initial checkpoint
-    # checkpoint = CheckpointManager(
-    #     dataloader=data_loader,
-    #     model_parts=model_parts,
-    #     optimizers=optimizer.optimizers,
-    #     lr_schedulers=scheduler.schedulers,
-    #     states={"train_state": train_state},
-    #     job_config=job_config,
-    # )
+    checkpoint = CheckpointManager(
+        dataloader=data_loader,
+        model_parts=model_parts,
+        optimizers=optimizer.optimizers,
+        lr_schedulers=scheduler.schedulers,
+        states={"train_state": train_state},
+        ckpt_config=job_config.checkpoint,
+    )
 
     train_context = get_train_context(
         parallel_dims.loss_parallel_enabled,
         job_config.experimental.enable_compiled_autograd,
     )
+    logger.info(f"training starts at {time.time()}")
     time.sleep(10000)
 
     torch.distributed.destroy_process_group()

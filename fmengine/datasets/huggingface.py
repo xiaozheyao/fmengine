@@ -5,8 +5,10 @@ from datasets import Dataset, load_dataset
 from datasets.distributed import split_dataset_by_node
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import IterableDataset
-from .tokenizer import Tokenizer
+
 from fmengine.utilities import logger
+
+from .tokenizer import Tokenizer
 
 _supported_datasets = {
     "c4_test": "test/assets/c4_test",

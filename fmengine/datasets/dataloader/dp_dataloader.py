@@ -1,8 +1,9 @@
+import pickle
+from typing import Any, Dict
+
 from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import IterableDataset
-from typing import Any, Dict
 from torchdata.stateful_dataloader import StatefulDataLoader
-import pickle
 
 from fmengine.utilities import logger
 

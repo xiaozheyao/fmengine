@@ -21,7 +21,8 @@ model:
   vocab_size: 32000
 
 tokenizer:
-  pretrained: meta-llama/Meta-Llama-3.1-8B-Instruct
+  tokenizer_type: huggingface
+  tokenizer_name_or_path: meta-llama/Meta-Llama-3.1-8B-Instruct
 
 checkpoint:
   ckpt_dir: .local/ckpts
