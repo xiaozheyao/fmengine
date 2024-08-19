@@ -260,7 +260,7 @@ def train_entry(job_config: TrainJobConfig):
                 time_last_log = time.perf_counter()
                 gpu_memory_monitor.reset_peak_stats()
 
-            checkpoint.save(train_state.step, force=(train_state.step == job_config.training.steps))
+            checkpoint.save(train_state.step, force=(train_state.step == job_config.training.train_steps))
 
             # signal the profiler that the next profiling step has started
             if torch_profiler:

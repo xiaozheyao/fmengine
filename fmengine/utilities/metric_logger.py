@@ -32,7 +32,8 @@ class MetricLogger:
         # we don't use job_config's enable_wb, as it might be overwritten by the rank_0_only logic
         if enable_wb:
             self.run = wandb.init(project=project_name)
-            self.run.config = job_config
+            config = self.run.config
+            config.job = job_config
         else:
             self.run = None
 
