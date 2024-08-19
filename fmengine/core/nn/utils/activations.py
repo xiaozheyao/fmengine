@@ -15,6 +15,4 @@ def silu(x):
 
 
 def get_activation_fn(activation: str):
-    return (
-        ACTIVATIONS[activation] if activation in ACTIVATIONS else getattr(F, activation)
-    )
+    return ACTIVATIONS[activation] if activation in ACTIVATIONS else getattr(F, activation)

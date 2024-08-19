@@ -28,8 +28,6 @@ class DPAwareDataLoader(StatefulDataLoader, Stateful):
             return
 
         if self._rank_id not in state_dict:
-            logger.warning(
-                f"DataLoader state is empty for dp rank {self._dp_rank}, expected key {self._rank_id}"
-            )
+            logger.warning(f"DataLoader state is empty for dp rank {self._dp_rank}, expected key {self._rank_id}")
             return
         super().load_state_dict(pickle.loads(state_dict[self._rank_id]))

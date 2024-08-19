@@ -1,2 +1,2 @@
 format:
-	python -m black .
+	python -m black . --config black.toml

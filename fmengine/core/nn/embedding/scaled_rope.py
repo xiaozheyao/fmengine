@@ -41,10 +41,7 @@ class Llama3ScaledRoPE(nn.Module):
         self.rope_init()
 
     def rope_init(self):
-        freqs = 1.0 / (
-            self.base
-            ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
-        )
+        freqs = 1.0 / (self.base ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim))
         theta = self.apply_scaling(freqs)
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
@@ -52,9 +49,7 @@ class Llama3ScaledRoPE(nn.Module):
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
-        seq_idx = torch.arange(
-            max_seq_len, dtype=self.theta.dtype, device=self.theta.device
-        )
+        seq_idx = torch.arange(max_seq_len, dtype=self.theta.dtype, device=self.theta.device)
 
         # Outer product of theta and position index; output tensor has
         # a shape of [max_seq_len, dim // 2]
@@ -86,9 +81,7 @@ class Llama3ScaledRoPE(nn.Module):
                 new_freqs.append(freq / scale_factor)
             else:
                 assert low_freq_wavelen != high_freq_wavelen
-                smooth = (old_context_len / wavelen - low_freq_factor) / (
-                    high_freq_factor - low_freq_factor
-                )
+                smooth = (old_context_len / wavelen - low_freq_factor) / (high_freq_factor - low_freq_factor)
                 new_freqs.append((1 - smooth) * freq / scale_factor + smooth * freq)
         return torch.tensor(new_freqs, dtype=freqs.dtype, device=freqs.device)
 
@@ -121,9 +114,7 @@ class Llama3ScaledRoPE(nn.Module):
         seq_len = x.size(1)
 
         # extract the values based on whether input_pos is set or not
-        rope_cache = (
-            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
-        )
+        rope_cache = self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
 
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation
@@ -138,10 +129,8 @@ class Llama3ScaledRoPE(nn.Module):
         # tensor has shape [b, s, n_h, h_d // 2, 2]
         x_out = torch.stack(
             [
-                xshaped[..., 0] * rope_cache[..., 0]
-                - xshaped[..., 1] * rope_cache[..., 1],
-                xshaped[..., 1] * rope_cache[..., 0]
-                + xshaped[..., 0] * rope_cache[..., 1],
+                xshaped[..., 0] * rope_cache[..., 0] - xshaped[..., 1] * rope_cache[..., 1],
+                xshaped[..., 1] * rope_cache[..., 0] + xshaped[..., 0] * rope_cache[..., 1],
             ],
             -1,
         )

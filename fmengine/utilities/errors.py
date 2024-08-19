@@ -24,6 +24,4 @@ class ConfigError(Exception):
 
     def __str__(self):
         error_messages = [f"{type(e).__name__}: {str(e)}" for e in self.errors]
-        return "Config is not well-formed, found the following errors: \n" + "\n".join(
-            error_messages
-        )
+        return "Config is not well-formed, found the following errors: \n" + "\n".join(error_messages)

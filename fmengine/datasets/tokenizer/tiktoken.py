@@ -52,13 +52,8 @@ class TikTokenizer(Tokenizer):
             "<|end_header_id|>",
             "<|reserved_special_token_4|>",
             "<|eot_id|>",  # end of turn
-        ] + [
-            f"<|reserved_special_token_{i}|>"
-            for i in range(5, self.num_reserved_special_tokens - 5)
-        ]
-        self.special_tokens = {
-            token: num_base_tokens + i for i, token in enumerate(special_tokens)
-        }
+        ] + [f"<|reserved_special_token_{i}|>" for i in range(5, self.num_reserved_special_tokens - 5)]
+        self.special_tokens = {token: num_base_tokens + i for i, token in enumerate(special_tokens)}
         self.model = tiktoken.Encoding(
             name=Path(model_path).name,
             pat_str=self.pat_str,
@@ -75,9 +70,7 @@ class TikTokenizer(Tokenizer):
             self.special_tokens["<|end_of_text|>"],
             self.special_tokens["<|eot_id|>"],
         }
-        logger.info(
-            f"TikTokenizer built: #words {self.n_words}, BOS ID {self.bos_id}, EOS ID {self.eos_id}"
-        )
+        logger.info(f"TikTokenizer built: #words {self.n_words}, BOS ID {self.bos_id}, EOS ID {self.eos_id}")
 
     def encode(
         self,
@@ -158,9 +151,7 @@ class TikTokenizer(Tokenizer):
         return self.model.decode(cast(List[int], t))
 
     @staticmethod
-    def _split_whitespaces_or_nonwhitespaces(
-        s: str, max_consecutive_slice_len: int
-    ) -> Iterator[str]:
+    def _split_whitespaces_or_nonwhitespaces(s: str, max_consecutive_slice_len: int) -> Iterator[str]:
         """
         Splits the string `s` so that each substring contains no more than `max_consecutive_slice_len`
         consecutive whitespaces or consecutive non-whitespaces.

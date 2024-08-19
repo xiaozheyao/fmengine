@@ -15,8 +15,6 @@ def build_hf_data_loader(
     rank,
     infinite: bool = True,
 ):
-    hf_ds = HuggingFaceDataset(
-        dataset_name, dataset_path, tokenizer, seq_len, world_size, rank, infinite
-    )
+    hf_ds = HuggingFaceDataset(dataset_name, dataset_path, tokenizer, seq_len, world_size, rank, infinite)
 
     return DPAwareDataLoader(rank, hf_ds, batch_size=batch_size)

@@ -20,7 +20,9 @@ class CheckpointConfig:
     model_weights_only: bool = False
     export_dtype: str = "float16"
     async_mode: str = "async"
-    
+    create_seed_checkpoint: bool = False
+
+
 @dataclass
 class FP8Config:
     enable_float8_linear: bool = False
@@ -48,6 +50,7 @@ class TrainingConfig:
     dump_folder: str = ".local/output"
     enable_async_tensor_parallel: bool = False
     compile: bool = True
+    max_norm: float = 1.0
     float8: FP8Config = field(default_factory=FP8Config)
 
 
@@ -66,6 +69,22 @@ class DatasetConfig:
 
 
 @dataclass
+class MetricConfig:
+    enable_wb: bool = False
+    project_name: str = "fmengine"
+    rank_0_only: bool = True
+
+
+@dataclass
+class ProfilingConfig:
+    enable_profiling: bool = True
+    enable_memory_snapshot: bool = False
+    save_traces_folder: str = ".local/traces"
+    save_memory_snapshot_folder: str = ".local/memory_snapshots"
+    profile_freq: int = 10
+
+
+@dataclass
 class TrainJobConfig:
     model: Union["LlamaArgs"]
     tokenizer: TokenizerConfig
@@ -74,3 +93,5 @@ class TrainJobConfig:
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     experimental: ExperimentalConfig = field(default_factory=ExperimentalConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    metrics: MetricConfig = field(default_factory=MetricConfig)
+    profiling: ProfilingConfig = field(default_factory=ProfilingConfig)

@@ -50,12 +50,8 @@ class TrainState(Stateful):
     def load_state_dict(self, state_dict) -> None:
         self.step = state_dict["step"].item()
         state_dict["global_avg_losses"].seek(0)
-        self.global_avg_losses = torch.load(
-            state_dict["global_avg_losses"], weights_only=False
-        )
+        self.global_avg_losses = torch.load(state_dict["global_avg_losses"], weights_only=False)
         state_dict["global_max_losses"].seek(0)
-        self.global_max_losses = torch.load(
-            state_dict["global_max_losses"], weights_only=False
-        )
+        self.global_max_losses = torch.load(state_dict["global_max_losses"], weights_only=False)
         state_dict["log_steps"].seek(0)
         self.log_steps = torch.load(state_dict["log_steps"], weights_only=False)

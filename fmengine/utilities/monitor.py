@@ -22,9 +22,7 @@ class GPUMemoryMonitor:
         self.device = torch.device(device)  # device object
         self.device_name = torch.cuda.get_device_name(self.device)
         self.device_index = torch.cuda.current_device()
-        self.device_capacity = torch.cuda.get_device_properties(
-            self.device
-        ).total_memory
+        self.device_capacity = torch.cuda.get_device_properties(self.device).total_memory
         self.device_capacity_gib = self._to_gib(self.device_capacity)
 
         torch.cuda.reset_peak_memory_stats()

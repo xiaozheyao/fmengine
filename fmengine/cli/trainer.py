@@ -21,8 +21,11 @@ from fmengine.models.utils import get_num_params
 from fmengine.utilities import (
     GarbageCollection,
     build_gpu_memory_monitor,
+    build_metric_logger,
     get_peak_flops,
     logger,
+    maybe_enable_memory_snapshot,
+    maybe_enable_profiling,
 )
 
 
@@ -33,9 +36,7 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
             if enable_loss_parallel:
                 stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
             if enable_compiled_autograd:
-                stack.enter_context(
-                    torch._dynamo.utils.maybe_enable_compiled_autograd(True)
-                )
+                stack.enter_context(torch._dynamo.utils.maybe_enable_compiled_autograd(True))
             yield
 
     return context
@@ -72,9 +73,7 @@ def train_entry(job_config: TrainJobConfig):
     model_param_count = get_num_params(model)
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
-    parallelize_llama(
-        model, world_mesh, parallel_dims, train_config=job_config.training
-    )
+    parallelize_llama(model, world_mesh, parallel_dims, train_config=job_config.training)
     init_device = "cuda"
     model.to_empty(device=init_device)
     model_parts = [model]
@@ -95,9 +94,7 @@ def train_entry(job_config: TrainJobConfig):
     # Build optimizer and scheduler
     optimizer = build_optimizer(model_parts, job_config.optimizer)
     scheduler = build_lr_scheduler(optimizer.optimizers, job_config)
-    tokenizer = build_tokenizer(
-        job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path
-    )
+    tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     # build dataloader
     data_loader = build_hf_data_loader(
         job_config.dataset.name,
@@ -119,12 +116,72 @@ def train_entry(job_config: TrainJobConfig):
         states={"train_state": train_state},
         ckpt_config=job_config.checkpoint,
     )
+    if job_config.checkpoint.create_seed_checkpoint:
+        assert world_size == 1, "Must create seed-checkpoint using one gpu, to disable sharding"
+        logger.info("Creating seed checkpoint")
+        checkpoint.save(curr_step=0, force=True)
+        return
 
+    checkpoint_loaded = checkpoint.load()
+    metric_logger = build_metric_logger(job_config, parallel_dims)
+    if train_state.step > 0:
+        for idx, step in enumerate(train_state.log_steps):
+            metrics = {
+                "loss_metrics/global_avg_loss": train_state.global_avg_losses[idx],
+                "loss_metrics/global_max_loss": train_state.global_max_losses[idx],
+            }
+            metric_logger.log(metrics, step=step)
+
+    data_iterator = iter(data_loader)
     train_context = get_train_context(
         parallel_dims.loss_parallel_enabled,
         job_config.experimental.enable_compiled_autograd,
     )
-    logger.info(f"training starts at {time.time()}")
+    losses_since_last_log = []
+    ntokens_since_last_log = 0
+    data_loading_times = []
+    time_last_log = time.perf_counter()
+    gpu_memory_monitor.reset_peak_stats()
+
+    checkpoint.reset()
+    logger.info(
+        f"Training starts at step {train_state.step + 1}, "
+        f"with local batch size {job_config.dataset.batch_size}, "
+        f"global batch size {job_config.dataset.batch_size * dp_degree}, "
+        f"sequence length {job_config.dataset.seq_len}, "
+        f"total steps {job_config.training.train_steps} "
+        f"(warmup {job_config.training.warmup_steps})"
+    )
+
+    with (
+        maybe_enable_profiling(job_config, global_step=train_state.step) as torch_profiler,
+        maybe_enable_memory_snapshot(job_config, global_step=train_state.step) as memory_snapshot,
+    ):
+        while train_state.step < job_config.training.train_steps:
+            train_state.step += 1
+            gc_handler.run(train_state.step)
+
+            # get train batch
+            data_load_start = time.perf_counter()
+            batch = next(data_iterator)
+            input_ids, labels = batch
+            ntokens_since_last_log += labels.numel()
+            data_loading_times.append(time.perf_counter() - data_load_start)
+            input_ids = input_ids.cuda()
+            labels = labels.cuda()
+            optimizer.zero_grad()
+
+            with train_context():
+                pred = model(input_ids)
+                loss = cross_entropy_loss(pred, labels)
+                del pred
+                loss.backward()
+
+            for m in model_parts:
+                torch.nn.utils.clip_grad_norm_(m.parameters(), job_config.training.max_norm, foreach=True)
+            checkpoint.maybe_wait_for_staging()
+            optimizer.step()
+            scheduler.step()
     time.sleep(10000)
 
     torch.distributed.destroy_process_group()

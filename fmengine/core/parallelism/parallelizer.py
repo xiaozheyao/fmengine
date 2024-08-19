@@ -127,9 +127,7 @@ _save_list = {
 def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
     valid_ac_modes = ("full", "selective")
     if ac_config.mode not in valid_ac_modes:
-        raise ValueError(
-            f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}"
-        )
+        raise ValueError(f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}")
 
     if ac_config.mode == "full":
         return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
@@ -155,14 +153,8 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
                 if func == torch.ops.aten.mm.default:
                     meta[mm_count_key] += 1
                 # Saves output of all compute ops, except every second mm
-                to_save = func in _save_list and not (
-                    func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0
-                )
-                return (
-                    CheckpointPolicy.MUST_SAVE
-                    if to_save
-                    else CheckpointPolicy.PREFER_RECOMPUTE
-                )
+                to_save = func in _save_list and not (func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0)
+                return CheckpointPolicy.MUST_SAVE if to_save else CheckpointPolicy.PREFER_RECOMPUTE
 
             return _custom_policy
 
