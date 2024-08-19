@@ -31,9 +31,7 @@ class MetricLogger:
     def __init__(self, project_name: str, job_config: TrainJobConfig, enable_wb: bool):
         # we don't use job_config's enable_wb, as it might be overwritten by the rank_0_only logic
         if enable_wb:
-            self.run = wandb.init(project=project_name)
-            config = self.run.config
-            config.job = job_config
+            self.run = wandb.init(project=project_name, config=job_config)
         else:
             self.run = None
 
@@ -43,7 +41,7 @@ class MetricLogger:
             self.run.log(metrics)
 
     def close(self):
-        pass
+        self.run.finish()
 
 
 def build_metric_logger(job_config: TrainJobConfig, parallel_dims: "ParallelDims", tag: Optional[str] = None):

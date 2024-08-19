@@ -30,7 +30,7 @@ class FP8Config:
 
 @dataclass
 class OptimizerConfig:
-    name: str = "adam"
+    name: str = "adamw"
     lr: float = 1e-3
     fused: bool = True
     weight_decay: float = 0.1

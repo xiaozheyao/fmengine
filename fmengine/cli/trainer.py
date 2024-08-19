@@ -238,6 +238,7 @@ def train_entry(job_config: TrainJobConfig):
                     "total_tokens": train_state.total_tokens,
                     "wps": wps,
                     "mfu(%)": mfu,
+                    "config/learning_rate": optimizer.learning_rate,
                     "time_metrics/end_to_end(s)": time_end_to_end,
                     "time_metrics/data_loading(s)": time_data_loading,
                     "time_metrics/data_loading(%)": time_data_loading_pct,
@@ -256,8 +257,8 @@ def train_entry(job_config: TrainJobConfig):
                     f"{color.yellow}memory: {gpu_mem_stats.max_reserved_gib:5.2f}GiB"
                     f"({gpu_mem_stats.max_reserved_pct:.2f}%)  "
                     f"{color.blue}wps: {round(wps):,}  "
-                    f"{color.magenta}mfu: {mfu:.2f}%{color.reset}  "
-                    f"{color.red}tokens: {humanize.intword(train_state.total_tokens)}  "
+                    f"{color.magenta}mfu: {mfu:.2f}%  "
+                    f"{color.red}tokens: {humanize.intword(train_state.total_tokens)}{color.reset}"
                 )
 
                 losses_since_last_log.clear()

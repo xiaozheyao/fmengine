@@ -37,6 +37,8 @@ training:
   enable_loss_parallel: true
   data_parallel_type: fsdp
   dump_folder: ./outputs
+  train_steps: 10000
+  warmup_steps: 200
 
 
 dataset:
@@ -51,3 +53,8 @@ metrics:
 
 profiling:
   profile_freq: 500
+
+optimizer:
+  name: adamw
+  lr: 1e-3
+  fused: true
