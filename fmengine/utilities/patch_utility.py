@@ -1,6 +1,5 @@
 import torch
 
-
 def _patch_with_transformer_engine():
     try:
         import transformer_engine as te

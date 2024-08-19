@@ -95,7 +95,8 @@ def apply_tp(
             "mlp.w2": rowwise_parallel(output_layouts=Shard(1)),
             "mlp.w3": colwise_parallel(),
         }
-
+        print(transformer_block)
+        exit(0)
         parallelize_module(
             module=transformer_block,
             device_mesh=tp_mesh,
@@ -122,20 +123,20 @@ _save_list = {
 }
 
 
-def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
+def _apply_ac_to_transformer_block(module: nn.Module, ac_mode: str, selective_ac_option: str):
     valid_ac_modes = ("full", "selective")
-    if ac_config.mode not in valid_ac_modes:
-        raise ValueError(f"Invalid AC mode: {ac_config.mode}. Valid modes: {valid_ac_modes}")
+    if ac_mode not in valid_ac_modes:
+        raise ValueError(f"Invalid AC mode: {ac_mode}. Valid modes: {valid_ac_modes}")
 
-    if ac_config.mode == "full":
+    if ac_mode == "full":
         return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
 
-    assert ac_config.mode == "selective", f"{ac_config.mode}"
-    use_op_sac = ac_config.selective_ac_option == "op"
-    use_layer_sac = ac_config.selective_ac_option.isdigit()
+    assert ac_mode == "selective", f"{ac_mode}"
+    use_op_sac = selective_ac_option == "op"
+    use_layer_sac = selective_ac_option.isdigit()
     if not use_op_sac and not use_layer_sac:
         raise ValueError(
-            f"Invalid selective AC option: {ac_config.selective_ac_option}. "
+            f"Invalid selective AC option: {selective_ac_option}. "
             f"Valid options: 'op' or a positive int representing layer frequency"
         )
     if use_op_sac:
@@ -164,7 +165,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
         )
     elif use_layer_sac:
         # Checkpoint every `ac_freq` of the modules passed to this function
-        ac_freq = int(ac_config.selective_ac_option)
+        ac_freq = int(selective_ac_option)
         ptd_checkpoint_wrapper.__dict__.setdefault("_count", 0)
         ptd_checkpoint_wrapper._count += 1
         if not ac_freq or ptd_checkpoint_wrapper._count % ac_freq == 0:
@@ -173,10 +174,79 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_config):
             return module
 
 
-def apply_ac(model: nn.Module, ac_config):
+def apply_ac(model: nn.Module, ac_mode: str, selective_ac_option: str = "2"):
     """Apply activation checkpointing to the model."""
     for layer_id, transformer_block in model.layers.named_children():
-        transformer_block = _apply_ac_to_transformer_block(transformer_block, ac_config)
+        transformer_block = _apply_ac_to_transformer_block(transformer_block, ac_mode, selective_ac_option)
         model.layers.register_module(layer_id, transformer_block)
 
-    logger.info(f"Applied {ac_config.mode} activation checkpointing to the model")
+    logger.info(f"Applied {ac_mode} activation checkpointing to the model")
+
+def apply_compile(model: nn.Module):
+    """
+    Apply torch.compile to each TransformerBlock, which makes compilation efficient due to
+    repeated structure. Alternatively one can compile the whole model (after applying DP).
+    """
+    for layer_id, transformer_block in model.layers.named_children():
+        transformer_block = torch.compile(transformer_block, fullgraph=True)
+        model.layers.register_module(layer_id, transformer_block)
+
+    logger.info("Compiling each TransformerBlock with torch.compile")
+
+
+def apply_fsdp(
+    model: nn.Module,
+    dp_mesh: DeviceMesh,
+    param_dtype: torch.dtype,
+    reduce_dtype: torch.dtype,
+    tp_enabled: bool,
+    pp_enabled: bool,
+):
+    """
+    Apply data parallelism to the model. FSDP2 is used here.
+    """
+    mp_policy = MixedPrecisionPolicy(param_dtype=param_dtype, reduce_dtype=reduce_dtype)
+    fsdp_config = {"mesh": dp_mesh, "mp_policy": mp_policy}
+
+    # TODO: remove this check once PyTorch 2.5 is released. We can safely assume
+    # that users won't use a nightly build which is older than 20240809 by then.
+    if tp_enabled:
+        # check if strided sharding is enabled, which is necessary for 2D/3D DCP
+        raise ValueError(f"TP + FSDP is not supported yet")
+
+    for layer_id, transformer_block in enumerate(model.layers):
+        if pp_enabled:
+            # For PP, do not reshard after forward to avoid per-microbatch
+            # all-gathers, which can be expensive and non-overlapped
+            reshard_after_forward = False
+        else:
+            # As an optimization, do not reshard after forward for the last
+            # transformer block since FSDP would prefetch it immediately
+            reshard_after_forward = int(layer_id) < len(model.layers) - 1
+        fully_shard(
+            transformer_block,
+            **fsdp_config,
+            reshard_after_forward=reshard_after_forward,
+        )
+    fully_shard(model, **fsdp_config, reshard_after_forward=not pp_enabled)
+
+    logger.info("Applied FSDP to the model")
+
+
+def apply_ddp(
+    model: nn.Module,
+    dp_mesh: DeviceMesh,
+    enable_compile: bool,
+    enable_compiled_autograd: bool,
+):
+    if enable_compile:
+        if enable_compiled_autograd:
+            torch._dynamo.config.optimize_ddp = (
+                "python_reducer_without_compiled_forward"
+            )
+        else:
+            torch._dynamo.config.optimize_ddp = "ddp_optimizer"
+
+    replicate(model, device_mesh=dp_mesh, bucket_cap_mb=100)
+
+    logger.info("Applied DDP to the model")

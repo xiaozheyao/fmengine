@@ -127,7 +127,6 @@ class CheckpointManager:
     ) -> None:
         self.enable_checkpoint = ckpt_config.enable_checkpoint
         self.keep_latest_k = ckpt_config.keep_latest_k
-
         if not self.enable_checkpoint:
             return
         """

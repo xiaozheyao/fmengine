@@ -32,6 +32,7 @@ from fmengine.utilities import (
     get_num_flop_per_token,
     Color,
     set_pg_timeouts,
+    auto_patch,
 )
 
 
@@ -47,9 +48,9 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
 
     return context
 
-
 @record
 def train_entry(job_config: TrainJobConfig):
+    auto_patch()
     gc_handler = GarbageCollection()
     world_size = int(os.environ["WORLD_SIZE"])
     parallel_dims = ParallelDims(
@@ -61,9 +62,10 @@ def train_entry(job_config: TrainJobConfig):
         dp_type=job_config.training.data_parallel_type,
     )
     color = Color()
+    device = torch.device(f"cuda:{int(os.environ['LOCAL_RANK'])}")
+    torch.cuda.set_device(device)
     init_distributed(dump_folder=job_config.training.dump_folder)
     world_mesh = parallel_dims.build_mesh(device_type="cuda")
-    print(world_mesh)
     gpu_memory_monitor = build_gpu_memory_monitor()
     gpu_peak_flops = get_peak_flops(gpu_memory_monitor.device_name)
     if parallel_dims.dp_enabled:
@@ -75,7 +77,8 @@ def train_entry(job_config: TrainJobConfig):
     with torch.device("meta"):
         model = build_model(job_config.model)
     # todo(xiaozhe): handle fp8 here
-    print(model)
+    logger.info(model)
+    
     # model stats
     model_param_count = get_num_params(model)
     num_flop_per_token = get_num_flop_per_token(
@@ -85,8 +88,9 @@ def train_entry(job_config: TrainJobConfig):
     )
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
+    # todo(xiaozhe): apply different parallelize function based on configurations
     parallelize_llama(model, world_mesh, parallel_dims, train_config=job_config.training)
-    init_device = "cuda"
+    init_device = "cpu" if job_config.checkpoint.create_seed_checkpoint else "cuda"
     model.to_empty(device=init_device)
     model_parts = [model]
 
@@ -100,7 +104,7 @@ def train_entry(job_config: TrainJobConfig):
     gpu_mem_stats = gpu_memory_monitor.get_peak_stats()
     logger.info(
         f"GPU memory usage for model: "
-        f"{gpu_mem_stats.max_reserved_gib:.2f}GiB"
+        f"{gpu_mem_stats.max_reserved_gib:.2f}GiB "
         f"({gpu_mem_stats.max_reserved_pct:.2f}%)"
     )
     # Build optimizer and scheduler
@@ -132,7 +136,9 @@ def train_entry(job_config: TrainJobConfig):
         assert world_size == 1, "Must create seed-checkpoint using one gpu, to disable sharding"
         logger.info("Creating seed checkpoint")
         checkpoint.save(curr_step=0, force=True)
-
+        logger.info("Seed checkpoint created, please restart training.")
+        return 
+    logger.info(f"current device: {torch.cuda.current_device()}")
     checkpoint_loaded = checkpoint.load()
     metric_logger = build_metric_logger(job_config, parallel_dims)
     
@@ -224,7 +230,7 @@ def train_entry(job_config: TrainJobConfig):
                 # model FLOPS utilization
                 # For its definition and calculation, please refer to the PaLM paper:
                 # https://arxiv.org/abs/2204.02311
-                mfu = 100 * num_flop_per_token * wps / gpu_peak_flops
+                mfu = 100 * num_flop_per_token * wps / gpu_peak_flops / world_size
 
                 time_end_to_end = time_delta / job_config.metrics.log_freq
                 time_data_loading = sum(data_loading_times) / len(data_loading_times)

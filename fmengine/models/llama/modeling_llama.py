@@ -1,22 +1,21 @@
-import torch
 import torch.nn as nn
 from torch.distributed import DeviceMesh
 
 from fmengine.core.configs.train_config import TrainingConfig
+from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.nn import (
     CausalSelfAttention,
     FeedForward,
     Llama3ScaledRoPE,
     RMSNorm,
-    TiedEmbeddingTransformerDecoder,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
 from fmengine.core.parallelism.parallel_dims import ParallelDims
-from fmengine.core.parallelism.parallelizer import apply_tp
+from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsdp, apply_compile, apply_ddp
 
 from .config_llama import LlamaArgs
-
+from fmengine.utilities import logger
 
 def build_llama_3(args: LlamaArgs):
     head_dim = args.hidden_size // args.n_heads
@@ -77,3 +76,31 @@ def parallelize_llama(
             enable_float8=train_config.float8.enable_float8_linear,
             enable_async_tp=train_config.enable_async_tensor_parallel,
         )
+    if train_config.ac_mode != "none":
+        apply_ac(model, train_config.ac_mode, train_config.selective_ac_option)
+    if train_config.compile:
+        logger.info("Compiling enabled")
+        apply_compile(model)
+    if parallel_dims.dp_enabled:
+        if parallel_dims.dp_type== "fsdp":
+            dp_mesh = world_mesh["dp"] if world_mesh.ndim > 1 else world_mesh
+            assert dp_mesh.mesh_dim_names == ("dp",), dp_mesh.mesh_dim_names
+            apply_fsdp(
+                model,
+                dp_mesh,
+                param_dtype=TORCH_DTYPE_MAP[train_config.mixed_precision_param],
+                reduce_dtype=TORCH_DTYPE_MAP[
+                    train_config.mixed_precision_reduce
+                ],
+                tp_enabled=parallel_dims.tp_enabled,
+                pp_enabled=parallel_dims.pp_enabled,
+            )
+        else:
+            if world_mesh.ndim > 1:
+                raise RuntimeError("DDP has not supported > 1D parallelism")
+            apply_ddp(
+                model,
+                world_mesh,
+                enable_compile=train_config.compile,
+                enable_compiled_autograd=train_config.experimental_enable_compiled_autograd,
+            )
