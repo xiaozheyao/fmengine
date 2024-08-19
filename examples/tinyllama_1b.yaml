@@ -9,7 +9,7 @@ model:
   intermediate_size: 5632
   max_position_embeddings: 2048
   n_heads: 32
-  n_layers: 22
+  n_layers: 24
   n_kv_heads: 4
   rms_norm_eps: 1.0e-05
   rope_theta: 500000
@@ -27,7 +27,7 @@ tokenizer:
 checkpoint:
   ckpt_dir: .local/ckpts
   create_seed_checkpoint: false
-  interval: 1000
+  interval: 2000
 
 training:
   gc_freq: 1000
@@ -38,10 +38,16 @@ training:
   data_parallel_type: fsdp
   dump_folder: ./outputs
 
+
 dataset:
   name: c4
   stream: true
   seq_len: 2048
+  batch_size: 4
 
 metrics:
   enable_wb: true
+  log_freq: 1
+
+profiling:
+  profile_freq: 500

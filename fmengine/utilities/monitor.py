@@ -87,12 +87,12 @@ def get_peak_flops(device_name: str) -> int:
         # data from https://www.nvidia.com/en-us/data-center/h100/
         # NOTE: Specifications are one-half lower without sparsity.
         if "NVL" in device_name:
-            return 1979e12
+            return 835e12
         elif "PCIe" in device_name:
             return 756e12
         else:  # for SXM and other variants
             return 989e12
     elif "3090" in device_name:
-        return 35.58e12
+        return 36e12
     else:  # for other GPU types, assume A100
         return 312e12

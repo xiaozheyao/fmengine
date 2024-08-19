@@ -135,6 +135,7 @@ def train_entry(job_config: TrainJobConfig):
 
     checkpoint_loaded = checkpoint.load()
     metric_logger = build_metric_logger(job_config, parallel_dims)
+    
     if train_state.step > 0:
         for idx, step in enumerate(train_state.log_steps):
             metrics = {
@@ -157,6 +158,8 @@ def train_entry(job_config: TrainJobConfig):
     checkpoint.reset()
     logger.info(
         f"Training starts at step {train_state.step + 1}, "
+        f"with {world_size} GPUs, "
+        f"total consumed tokens {train_state.total_tokens}, "
         f"with local batch size {job_config.dataset.batch_size}, "
         f"global batch size {job_config.dataset.batch_size * dp_degree}, "
         f"sequence length {job_config.dataset.seq_len}, "
@@ -177,6 +180,7 @@ def train_entry(job_config: TrainJobConfig):
             batch = next(data_iterator)
             input_ids, labels = batch
             ntokens_since_last_log += labels.numel()
+            train_state.total_tokens += ntokens_since_last_log
             data_loading_times.append(time.perf_counter() - data_load_start)
             input_ids = input_ids.cuda()
             labels = labels.cuda()
@@ -231,6 +235,7 @@ def train_entry(job_config: TrainJobConfig):
                 metrics = {
                     "loss_metrics/global_avg_loss": global_avg_loss,
                     "loss_metrics/global_max_loss": global_max_loss,
+                    "total_tokens": train_state.total_tokens,
                     "wps": wps,
                     "mfu(%)": mfu,
                     "time_metrics/end_to_end(s)": time_end_to_end,
@@ -251,7 +256,8 @@ def train_entry(job_config: TrainJobConfig):
                     f"{color.yellow}memory: {gpu_mem_stats.max_reserved_gib:5.2f}GiB"
                     f"({gpu_mem_stats.max_reserved_pct:.2f}%)  "
                     f"{color.blue}wps: {round(wps):,}  "
-                    f"{color.magenta}mfu: {mfu:.2f}%{color.reset}"
+                    f"{color.magenta}mfu: {mfu:.2f}%{color.reset}  "
+                    f"{color.red}tokens: {humanize.intword(train_state.total_tokens)}  "
                 )
 
                 losses_since_last_log.clear()
