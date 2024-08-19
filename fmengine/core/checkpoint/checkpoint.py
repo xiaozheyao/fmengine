@@ -303,10 +303,7 @@ class CheckpointManager:
 
     def _async_with_pinned_memory(self, checkpoint_id: str) -> None:
         try:
-            from torch.distributed._state_dict_utils import (
-                _copy_state_dict,
-                _create_cpu_state_dict,
-            )
+            from torch.distributed._state_dict_utils import _copy_state_dict, _create_cpu_state_dict
         except ImportError as e:
             raise ImportError(
                 "Please install the latest PyTorch nightly to use async checkpointing with pinned memory."

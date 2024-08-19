@@ -21,7 +21,7 @@ from .config_llama import LlamaArgs
 def build_llama_3(args: LlamaArgs):
     head_dim = args.hidden_size // args.n_heads
     num_kv_heads = args.n_kv_heads if args.n_kv_heads is not None else args.n_heads
-    rope = Llama3ScaledRoPE(dim=args.hidden_size, max_seq_len=args.max_seq_len, base=args.rope_theta)
+    rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=args.max_seq_len, base=args.rope_theta)
     self_attn = CausalSelfAttention(
         args.n_heads,
         num_kv_heads,

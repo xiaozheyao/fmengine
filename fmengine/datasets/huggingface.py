@@ -102,7 +102,7 @@ class HuggingFaceDataset(IterableDataset, Stateful):
         while True:
             for sample in self._get_data_iter():
                 sample_text = sample["text"]
-                sample_tokens = self._tokenizer.encode(sample_text, bos=True, eos=True)
+                sample_tokens = self._tokenizer.encode(sample_text)
                 self._all_tokens.extend(sample_tokens)
                 self._sample_idx += 1
 

@@ -4,8 +4,9 @@ from .garbage_collection import GarbageCollection
 from .logging import logger
 from .metric_logger import build_metric_logger
 from .monitor import build_gpu_memory_monitor, get_peak_flops
-from .others import _warn_overwrite_env
+from .others import _warn_overwrite_env, dist_max, dist_mean, get_num_flop_per_token, Color, set_pg_timeouts
 from .profiler import maybe_enable_memory_snapshot, maybe_enable_profiling
+
 
 __all__ = [
     "InstantiationError",
@@ -20,4 +21,9 @@ __all__ = [
     "build_metric_logger",
     "maybe_enable_memory_snapshot",
     "maybe_enable_profiling",
+    "dist_max",
+    "dist_mean",
+    "get_num_flop_per_token",
+    "Color",
+    "set_pg_timeouts",
 ]

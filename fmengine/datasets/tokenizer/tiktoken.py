@@ -1,17 +1,6 @@
 import os
 from pathlib import Path
-from typing import (
-    AbstractSet,
-    Collection,
-    Dict,
-    Iterator,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import AbstractSet, Collection, Dict, Iterator, List, Literal, Optional, Sequence, Union, cast
 
 import tiktoken
 from tiktoken.load import load_tiktoken_bpe

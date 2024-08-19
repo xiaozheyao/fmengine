@@ -1,16 +1,18 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import torch
 import wandb
 
 from fmengine.core.configs.train_config import TrainJobConfig
-from fmengine.core.parallelism.parallel_dims import ParallelDims
+
+if TYPE_CHECKING:
+    from fmengine.core.parallelism.parallel_dims import ParallelDims
 
 wandb.require("core")
 
 
-def _get_metrics_rank(parallel_dims: ParallelDims) -> int:
+def _get_metrics_rank(parallel_dims: "ParallelDims") -> int:
     """
     Returns global rank 0 in non-pipeline-parallel configs, and returns the global
     rank of the 0th rank in the last pipeline stage when pipeline parallelism is enabled.
@@ -40,11 +42,10 @@ class MetricLogger:
             self.run.log(metrics)
 
     def close(self):
-        if self.writer is not None:
-            self.writer.close()
+        pass
 
 
-def build_metric_logger(job_config: TrainJobConfig, parallel_dims: ParallelDims, tag: Optional[str] = None):
+def build_metric_logger(job_config: TrainJobConfig, parallel_dims: "ParallelDims", tag: Optional[str] = None):
     """
     parallel_dims is used to determine the rank to log metrics from if 'tb_config.rank_0_only=True'.
     In that case, `_get_metrics_rank` will be used to calculate which rank acts as 'rank 0'. This is

@@ -3,7 +3,7 @@ from functools import cached_property
 
 from torch.distributed.device_mesh import init_device_mesh
 
-from fmengine.utilities.logging import logger
+from fmengine.utilities import logger
 
 
 @dataclass

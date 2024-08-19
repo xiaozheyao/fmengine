@@ -6,6 +6,7 @@ import humanize
 import torch
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.fx import GraphModule
+from datetime import timedelta
 
 from fmengine.core.checkpoint import CheckpointManager, TrainState
 from fmengine.core.configs.train_config import TrainJobConfig
@@ -26,6 +27,11 @@ from fmengine.utilities import (
     logger,
     maybe_enable_memory_snapshot,
     maybe_enable_profiling,
+    dist_mean,
+    dist_max,
+    get_num_flop_per_token,
+    Color,
+    set_pg_timeouts,
 )
 
 
@@ -54,6 +60,7 @@ def train_entry(job_config: TrainJobConfig):
         enable_loss_parallel=job_config.training.enable_loss_parallel,
         dp_type=job_config.training.data_parallel_type,
     )
+    color = Color()
     init_distributed(dump_folder=job_config.training.dump_folder)
     world_mesh = parallel_dims.build_mesh(device_type="cuda")
     print(world_mesh)
@@ -71,6 +78,11 @@ def train_entry(job_config: TrainJobConfig):
     print(model)
     # model stats
     model_param_count = get_num_params(model)
+    num_flop_per_token = get_num_flop_per_token(
+        get_num_params(model, exclude_embedding=True),
+        job_config.model,
+        job_config.dataset.seq_len,
+    )
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
     parallelize_llama(model, world_mesh, parallel_dims, train_config=job_config.training)
@@ -120,7 +132,6 @@ def train_entry(job_config: TrainJobConfig):
         assert world_size == 1, "Must create seed-checkpoint using one gpu, to disable sharding"
         logger.info("Creating seed checkpoint")
         checkpoint.save(curr_step=0, force=True)
-        return
 
     checkpoint_loaded = checkpoint.load()
     metric_logger = build_metric_logger(job_config, parallel_dims)
@@ -155,7 +166,7 @@ def train_entry(job_config: TrainJobConfig):
 
     with (
         maybe_enable_profiling(job_config, global_step=train_state.step) as torch_profiler,
-        maybe_enable_memory_snapshot(job_config, global_step=train_state.step) as memory_snapshot,
+        maybe_enable_memory_snapshot(job_config, global_step=train_state.step) as memory_profiler,
     ):
         while train_state.step < job_config.training.train_steps:
             train_state.step += 1
@@ -182,6 +193,94 @@ def train_entry(job_config: TrainJobConfig):
             checkpoint.maybe_wait_for_staging()
             optimizer.step()
             scheduler.step()
-    time.sleep(10000)
+
+            losses_since_last_log.append(loss)
+
+            # log metrics
+            if train_state.step == 1 or train_state.step % job_config.metrics.log_freq == 0:
+                losses = [loss.item() for loss in losses_since_last_log]
+                avg_loss, max_loss = sum(losses) / len(losses), max(losses)
+                if parallel_dims.dp_enabled:
+                    global_avg_loss, global_max_loss = (
+                        dist_mean(avg_loss, dp_mesh),
+                        dist_max(max_loss, dp_mesh),
+                    )
+                else:
+                    global_avg_loss, global_max_loss = avg_loss, max_loss
+
+                # update train state
+                train_state.log_steps.append(train_state.step)
+                train_state.global_avg_losses.append(global_avg_loss)
+                train_state.global_max_losses.append(global_max_loss)
+
+                time_delta = time.perf_counter() - time_last_log
+
+                # tokens per second, abbr. as wps by convention
+                wps = ntokens_since_last_log / (time_delta * parallel_dims.model_parallel_size)
+                # model FLOPS utilization
+                # For its definition and calculation, please refer to the PaLM paper:
+                # https://arxiv.org/abs/2204.02311
+                mfu = 100 * num_flop_per_token * wps / gpu_peak_flops
+
+                time_end_to_end = time_delta / job_config.metrics.log_freq
+                time_data_loading = sum(data_loading_times) / len(data_loading_times)
+                time_data_loading_pct = 100 * sum(data_loading_times) / time_delta
+
+                gpu_mem_stats = gpu_memory_monitor.get_peak_stats()
+
+                metrics = {
+                    "loss_metrics/global_avg_loss": global_avg_loss,
+                    "loss_metrics/global_max_loss": global_max_loss,
+                    "wps": wps,
+                    "mfu(%)": mfu,
+                    "time_metrics/end_to_end(s)": time_end_to_end,
+                    "time_metrics/data_loading(s)": time_data_loading,
+                    "time_metrics/data_loading(%)": time_data_loading_pct,
+                    "memory/max_active(GiB)": gpu_mem_stats.max_active_gib,
+                    "memory/max_active(%)": gpu_mem_stats.max_active_pct,
+                    "memory/max_reserved(GiB)": gpu_mem_stats.max_reserved_gib,
+                    "memory/max_reserved(%)": gpu_mem_stats.max_reserved_pct,
+                    "memory/num_alloc_retries": gpu_mem_stats.num_alloc_retries,
+                    "memory/num_ooms": gpu_mem_stats.num_ooms,
+                }
+                metric_logger.log(metrics, step=train_state.step)
+
+                logger.info(
+                    f"{color.cyan}step: {train_state.step:2}  "
+                    f"{color.green}loss: {global_avg_loss:7.4f}  "
+                    f"{color.yellow}memory: {gpu_mem_stats.max_reserved_gib:5.2f}GiB"
+                    f"({gpu_mem_stats.max_reserved_pct:.2f}%)  "
+                    f"{color.blue}wps: {round(wps):,}  "
+                    f"{color.magenta}mfu: {mfu:.2f}%{color.reset}"
+                )
+
+                losses_since_last_log.clear()
+                ntokens_since_last_log = 0
+                data_loading_times.clear()
+                time_last_log = time.perf_counter()
+                gpu_memory_monitor.reset_peak_stats()
+
+            checkpoint.save(train_state.step, force=(train_state.step == job_config.training.steps))
+
+            # signal the profiler that the next profiling step has started
+            if torch_profiler:
+                torch_profiler.step()
+            if memory_profiler:
+                memory_profiler.step()
+
+                # reduce timeout after first train step for faster signal
+                # (assuming lazy init and compilation are finished)
+                if train_state.step == 1:
+                    set_pg_timeouts(
+                        timeout=timedelta(seconds=job_config.comm.train_timeout_seconds),
+                        world_mesh=world_mesh,
+                    )
+
+        if torch.distributed.get_rank() == 0:
+            logger.info("Sleeping 2 seconds for other ranks to complete")
+            time.sleep(2)
+
+        metric_logger.close()
+        logger.info("Training completed")
 
     torch.distributed.destroy_process_group()

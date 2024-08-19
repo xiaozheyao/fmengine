@@ -9,7 +9,7 @@ model:
   intermediate_size: 5632
   max_position_embeddings: 2048
   n_heads: 32
-  n_layers: 24
+  n_layers: 22
   n_kv_heads: 4
   rms_norm_eps: 1.0e-05
   rope_theta: 500000
@@ -22,10 +22,12 @@ model:
 
 tokenizer:
   tokenizer_type: huggingface
-  tokenizer_name_or_path: meta-llama/Meta-Llama-3.1-8B-Instruct
+  tokenizer_name_or_path: meta-llama/Llama-2-7b-chat-hf
 
 checkpoint:
   ckpt_dir: .local/ckpts
+  create_seed_checkpoint: false
+  interval: 1000
 
 training:
   gc_freq: 1000
@@ -39,4 +41,7 @@ training:
 dataset:
   name: c4
   stream: true
-  
+  seq_len: 2048
+
+metrics:
+  enable_wb: true

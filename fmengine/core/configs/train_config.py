@@ -73,6 +73,7 @@ class MetricConfig:
     enable_wb: bool = False
     project_name: str = "fmengine"
     rank_0_only: bool = True
+    log_freq: int = 10
 
 
 @dataclass
