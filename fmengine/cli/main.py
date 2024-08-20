@@ -22,7 +22,7 @@ def export(
     config = parse_train_config(config)
     export_entry(ckpt_path, step, config, output_path)
 
-@fmengine.command
+@fmengine.command()
 def inference(
     model_id: str = typer.Option(..., help="Path to the model file"),
     prompt: str = typer.Option(..., help="Prompt to generate text"),
