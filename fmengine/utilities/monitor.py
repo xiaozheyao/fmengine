@@ -92,6 +92,8 @@ def get_peak_flops(device_name: str) -> int:
             return 756e12
         else:  # for SXM and other variants
             return 989e12
+    elif "GH200 120GB" in device_name:
+        return 989e12
     elif "3090" in device_name:
         return 36e12
     else:  # for other GPU types, assume A100

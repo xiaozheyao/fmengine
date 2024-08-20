@@ -70,7 +70,7 @@ class DatasetConfig:
     stream: bool = True
     path: Optional[str] = None
     batch_size: int = 4
-    seq_len: int = 1024
+    seq_len: int = 2048
 
 
 @dataclass
