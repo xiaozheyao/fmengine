@@ -6,6 +6,8 @@
 #SBATCH --time=12:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=2
+#SBATCH --contiguous
+#SBATCH --output=logs/slurm-%j.out
 
 cd /fmengine
 export PYTHONPATH=/fmengine
@@ -51,3 +53,19 @@ CUDA_DEVICE_MAX_CONNECTIONS=1 torchrun \
     fmengine/cli/main.py train \
     --config /fmengine/examples/tinyllama_dp.yaml
 "
+
+echo $COMMAND
+
+# submit the job to slurm
+NAME="run"
+
+srun \
+    --unbuffered \
+    --output=$PWD/logs/%x_${NAME}_%j.log \
+    --environment fmengine \
+    --container-writable \
+    --jobid $SLURM_JOB_ID \
+    --wait 60 \
+    bash -c "$COMMAND"
+
+echo "END TIME: $(date)"

@@ -25,7 +25,7 @@ tokenizer:
   tokenizer_name_or_path: meta-llama/Llama-2-7b-chat-hf
 
 checkpoint:
-  ckpt_dir: .local/ckpts2
+  ckpt_dir: /checkpoints
   create_seed_checkpoint: false
   interval: 2000
   async_mode: disabled
