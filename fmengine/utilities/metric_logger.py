@@ -4,9 +4,10 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 import torch
 import wandb
 
-from fmengine.core.configs.train_config import TrainJobConfig
 
 if TYPE_CHECKING:
+    from fmengine.core.configs.train_config import TrainJobConfig
+
     from fmengine.core.parallelism.parallel_dims import ParallelDims
 
 wandb.require("core")
@@ -28,7 +29,7 @@ def _get_metrics_rank(parallel_dims: "ParallelDims") -> int:
 
 
 class MetricLogger:
-    def __init__(self, project_name: str, job_config: TrainJobConfig, enable_wb: bool):
+    def __init__(self, project_name: str, job_config: "TrainJobConfig", enable_wb: bool):
         # we don't use job_config's enable_wb, as it might be overwritten by the rank_0_only logic
         if enable_wb:
             self.run = wandb.init(project=project_name, config=job_config)
@@ -44,7 +45,7 @@ class MetricLogger:
         self.run.finish()
 
 
-def build_metric_logger(job_config: TrainJobConfig, parallel_dims: "ParallelDims", tag: Optional[str] = None):
+def build_metric_logger(job_config: "TrainJobConfig", parallel_dims: "ParallelDims", tag: Optional[str] = None):
     """
     parallel_dims is used to determine the rank to log metrics from if 'tb_config.rank_0_only=True'.
     In that case, `_get_metrics_rank` will be used to calculate which rank acts as 'rank 0'. This is

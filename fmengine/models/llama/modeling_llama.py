@@ -17,6 +17,7 @@ from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsd
 from .config_llama import LlamaArgs
 from fmengine.utilities import logger
 
+
 def build_llama_3(args: LlamaArgs):
     head_dim = args.hidden_size // args.n_heads
     num_kv_heads = args.n_kv_heads if args.n_kv_heads is not None else args.n_heads
@@ -82,16 +83,14 @@ def parallelize_llama(
         logger.info("Compiling enabled")
         apply_compile(model)
     if parallel_dims.dp_enabled:
-        if parallel_dims.dp_type== "fsdp":
+        if parallel_dims.dp_type == "fsdp":
             dp_mesh = world_mesh["dp"] if world_mesh.ndim > 1 else world_mesh
             assert dp_mesh.mesh_dim_names == ("dp",), dp_mesh.mesh_dim_names
             apply_fsdp(
                 model,
                 dp_mesh,
                 param_dtype=TORCH_DTYPE_MAP[train_config.mixed_precision_param],
-                reduce_dtype=TORCH_DTYPE_MAP[
-                    train_config.mixed_precision_reduce
-                ],
+                reduce_dtype=TORCH_DTYPE_MAP[train_config.mixed_precision_reduce],
                 tp_enabled=parallel_dims.tp_enabled,
                 pp_enabled=parallel_dims.pp_enabled,
             )

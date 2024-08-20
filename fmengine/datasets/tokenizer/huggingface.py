@@ -16,3 +16,6 @@ class HFTokenizer(Tokenizer):
 
     def decode(self, token_ids: List[int], **kwargs) -> str:
         return self.tokenizer.decode(token_ids, **kwargs)
+
+    def save_pretrained(self, path: str):
+        self.tokenizer.save_pretrained(path)

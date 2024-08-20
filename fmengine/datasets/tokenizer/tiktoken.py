@@ -162,3 +162,12 @@ class TikTokenizer(Tokenizer):
                     slice_start = i
                     current_slice_len = 1
         yield s[slice_start:]
+
+    def save_pretrained(self, path: str):
+        """
+        Saves the Tiktoken model to a file.
+
+        Args:
+            path (str): The path to save the model to.
+        """
+        self.model.save(path)

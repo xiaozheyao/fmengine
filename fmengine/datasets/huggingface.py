@@ -13,6 +13,7 @@ from .tokenizer import Tokenizer
 _supported_datasets = {
     "c4_test": "test/assets/c4_test",
     "c4": "allenai/c4",
+    "HuggingFaceFW/fineweb-edu": "HuggingFaceFW/fineweb-edu",
 }
 
 
@@ -60,6 +61,7 @@ class HuggingFaceDataset(IterableDataset, Stateful):
         world_size: int = 1,
         rank: int = 0,
         infinite: bool = False,
+        streaming: bool = False,
     ) -> None:
         # allow user to pass in a (local or HF hub) path to use unsupported datasets
         if dataset_name not in _supported_datasets:
@@ -81,9 +83,9 @@ class HuggingFaceDataset(IterableDataset, Stateful):
         if dataset_name == "c4":
             # c4 is huge, and requires both streaming and language selection
             # (we default to en)
-            ds = load_dataset(dataset_path, name="en", split="train", streaming=True)
+            ds = load_dataset(dataset_path, name="en", split="train", streaming=streaming)
         else:
-            ds = load_dataset(dataset_path, split="train")
+            ds = load_dataset(dataset_path, split="train", streaming=streaming)
 
         # TODO: support shuffling
         self.dataset_name = dataset_name

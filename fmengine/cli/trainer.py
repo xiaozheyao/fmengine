@@ -48,6 +48,7 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
 
     return context
 
+
 @record
 def train_entry(job_config: TrainJobConfig):
     auto_patch()
@@ -78,7 +79,7 @@ def train_entry(job_config: TrainJobConfig):
         model = build_model(job_config.model)
     # todo(xiaozhe): handle fp8 here
     logger.info(model)
-    
+
     # model stats
     model_param_count = get_num_params(model)
     num_flop_per_token = get_num_flop_per_token(
@@ -115,6 +116,7 @@ def train_entry(job_config: TrainJobConfig):
     data_loader = build_hf_data_loader(
         job_config.dataset.name,
         job_config.dataset.path,
+        job_config.dataset.stream,
         tokenizer,
         job_config.dataset.batch_size,
         job_config.dataset.seq_len,
@@ -137,16 +139,16 @@ def train_entry(job_config: TrainJobConfig):
         logger.info("Creating seed checkpoint")
         checkpoint.save(curr_step=0, force=True)
         logger.info("Seed checkpoint created, please restart training.")
-        return 
+        return
     logger.info(f"current device: {torch.cuda.current_device()}")
     checkpoint_loaded = checkpoint.load()
     metric_logger = build_metric_logger(job_config, parallel_dims)
-    
+
     if train_state.step > 0:
         for idx, step in enumerate(train_state.log_steps):
             metrics = {
-                "loss_metrics/global_avg_loss": train_state.global_avg_losses[idx],
-                "loss_metrics/global_max_loss": train_state.global_max_losses[idx],
+                "loss/global_avg_loss": train_state.global_avg_losses[idx],
+                "loss/global_max_loss": train_state.global_max_losses[idx],
             }
             metric_logger.log(metrics, step=step)
 
@@ -225,12 +227,12 @@ def train_entry(job_config: TrainJobConfig):
 
                 time_delta = time.perf_counter() - time_last_log
 
-                # tokens per second, abbr. as wps by convention
-                wps = ntokens_since_last_log / (time_delta * parallel_dims.model_parallel_size)
+                # tokens per second, abbr. as tps
+                tps = ntokens_since_last_log / (time_delta * parallel_dims.model_parallel_size)
                 # model FLOPS utilization
                 # For its definition and calculation, please refer to the PaLM paper:
                 # https://arxiv.org/abs/2204.02311
-                mfu = 100 * num_flop_per_token * wps / gpu_peak_flops / world_size
+                mfu = 100 * num_flop_per_token * tps / gpu_peak_flops / world_size
 
                 time_end_to_end = time_delta / job_config.metrics.log_freq
                 time_data_loading = sum(data_loading_times) / len(data_loading_times)
@@ -239,19 +241,19 @@ def train_entry(job_config: TrainJobConfig):
                 gpu_mem_stats = gpu_memory_monitor.get_peak_stats()
 
                 metrics = {
-                    "loss_metrics/global_avg_loss": global_avg_loss,
-                    "loss_metrics/global_max_loss": global_max_loss,
-                    "total_tokens": train_state.total_tokens,
-                    "wps": wps,
-                    "mfu(%)": mfu,
+                    "loss/global_avg_loss": global_avg_loss,
+                    "loss/global_max_loss": global_max_loss,
+                    "Total Tokens": train_state.total_tokens,
+                    "Tokens Per Second": tps,
+                    "MFU (%)": mfu,
                     "config/learning_rate": optimizer.learning_rate,
-                    "time_metrics/end_to_end(s)": time_end_to_end,
-                    "time_metrics/data_loading(s)": time_data_loading,
-                    "time_metrics/data_loading(%)": time_data_loading_pct,
-                    "memory/max_active(GiB)": gpu_mem_stats.max_active_gib,
-                    "memory/max_active(%)": gpu_mem_stats.max_active_pct,
-                    "memory/max_reserved(GiB)": gpu_mem_stats.max_reserved_gib,
-                    "memory/max_reserved(%)": gpu_mem_stats.max_reserved_pct,
+                    "time/end_to_end (s)": time_end_to_end,
+                    "time/data_loading (s)": time_data_loading,
+                    "time/data_loading (%)": time_data_loading_pct,
+                    "memory/max_active (GiB)": gpu_mem_stats.max_active_gib,
+                    "memory/max_active (%)": gpu_mem_stats.max_active_pct,
+                    "memory/max_reserved (GiB)": gpu_mem_stats.max_reserved_gib,
+                    "memory/max_reserved (%)": gpu_mem_stats.max_reserved_pct,
                     "memory/num_alloc_retries": gpu_mem_stats.num_alloc_retries,
                     "memory/num_ooms": gpu_mem_stats.num_ooms,
                 }
@@ -262,7 +264,7 @@ def train_entry(job_config: TrainJobConfig):
                     f"{color.green}loss: {global_avg_loss:7.4f}  "
                     f"{color.yellow}memory: {gpu_mem_stats.max_reserved_gib:5.2f}GiB"
                     f"({gpu_mem_stats.max_reserved_pct:.2f}%)  "
-                    f"{color.blue}wps: {round(wps):,}  "
+                    f"{color.blue}tps: {round(tps):,}  "
                     f"{color.magenta}mfu: {mfu:.2f}%  "
                     f"{color.red}tokens: {humanize.intword(train_state.total_tokens)}{color.reset}"
                 )

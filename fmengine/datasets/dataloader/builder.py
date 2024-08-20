@@ -8,6 +8,7 @@ from fmengine.datasets.tokenizer import Tokenizer
 def build_hf_data_loader(
     dataset_name: str,
     dataset_path: Optional[str],
+    streaming: bool,
     tokenizer: Tokenizer,
     batch_size: int,
     seq_len: int,
@@ -15,6 +16,6 @@ def build_hf_data_loader(
     rank,
     infinite: bool = True,
 ):
-    hf_ds = HuggingFaceDataset(dataset_name, dataset_path, tokenizer, seq_len, world_size, rank, infinite)
+    hf_ds = HuggingFaceDataset(dataset_name, dataset_path, tokenizer, seq_len, world_size, rank, infinite, streaming)
 
     return DPAwareDataLoader(rank, hf_ds, batch_size=batch_size)

@@ -52,13 +52,13 @@ class TrainingConfig:
     compile: bool = True
     max_norm: float = 1.0
     float8: FP8Config = field(default_factory=FP8Config)
-    ac_mode: str = 'none'
+    ac_mode: str = "none"
     selective_ac_option: str = "2"
-    compile: bool = False
     mixed_precision_param: str = "bfloat16"
     mixed_precision_reduce: str = "float32"
     experimental_enable_compiled_autograd: bool = False
-    
+
+
 @dataclass
 class ExperimentalConfig:
     enable_compiled_autograd: bool = False

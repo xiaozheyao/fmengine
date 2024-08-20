@@ -182,6 +182,7 @@ def apply_ac(model: nn.Module, ac_mode: str, selective_ac_option: str = "2"):
 
     logger.info(f"Applied {ac_mode} activation checkpointing to the model")
 
+
 def apply_compile(model: nn.Module):
     """
     Apply torch.compile to each TransformerBlock, which makes compilation efficient due to
@@ -241,9 +242,7 @@ def apply_ddp(
 ):
     if enable_compile:
         if enable_compiled_autograd:
-            torch._dynamo.config.optimize_ddp = (
-                "python_reducer_without_compiled_forward"
-            )
+            torch._dynamo.config.optimize_ddp = "python_reducer_without_compiled_forward"
         else:
             torch._dynamo.config.optimize_ddp = "ddp_optimizer"
 

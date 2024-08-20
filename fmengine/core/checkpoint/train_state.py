@@ -13,7 +13,7 @@ class TrainState(Stateful):
     global_avg_losses: List[float] = field(default_factory=list)
     global_max_losses: List[float] = field(default_factory=list)
     log_steps: List[int] = field(default_factory=list)
-    
+
     def state_dict(self) -> Dict[str, Any]:
         # Only checkpoint global_avg_losses and global_max_losses per log frequency
         # to avoid sync overhead in every iteration.

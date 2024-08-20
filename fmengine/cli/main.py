@@ -1,38 +1,43 @@
-import os
-
 import typer
-from dacite import from_dict
-from omegaconf import OmegaConf
-
 from fmengine.cli.trainer import train_entry
-from fmengine.core.configs.train_config import TrainJobConfig
+from fmengine.cli.utils import parse_train_config
+from fmengine.cli.export import export_entry
 
 fmengine = typer.Typer()
-
 
 @fmengine.command()
 def train(config: str = typer.Option(..., help="Path to the config file")):
     # check if the config file exists
     typer.echo(f"Training with config: {config}")
-    if not os.path.exists(config):
-        raise ValueError(f"Config file not found: {config}")
-    # if it is a directory, search for yaml files
-    if os.path.isdir(config):
-        config_files = [os.path.join(config, f) for f in os.listdir(config) if f.endswith(".yaml")]
-        typer.echo(f"config files found: {config_files}")
-        configs = [OmegaConf.load(f) for f in config_files]
-        config = OmegaConf.merge(*configs)
-    elif os.path.isfile(config):
-        config = OmegaConf.load(config)
-    config = OmegaConf.to_container(config)
-    config = from_dict(data_class=TrainJobConfig, data=config)
+    config = parse_train_config(config)
     train_entry(config)
 
-
 @fmengine.command()
-def inspect():
-    pass
+def export(
+    ckpt_path: str = typer.Option(..., help="Path to the checkpoint file"),
+    step: int = typer.Option(-1, help="Step to export the model"),
+    config: str = typer.Option(..., help="Path to the config file"),
+    output_path: str = typer.Option(..., help="Path to the output directory"),
+):
+    config = parse_train_config(config)
+    export_entry(ckpt_path, step, config, output_path)
 
-
+@fmengine.command
+def inference(
+    model_id: str = typer.Option(..., help="Path to the model file"),
+    prompt: str = typer.Option(..., help="Prompt to generate text"),
+):
+    import torch
+    import transformers
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model=model_id,
+        model_kwargs={"torch_dtype": torch.bfloat16},
+        device="cuda",
+        max_new_tokens=128,
+    )
+    output = pipeline(prompt)
+    print(output)
+    
 if __name__ == "__main__":
     fmengine()

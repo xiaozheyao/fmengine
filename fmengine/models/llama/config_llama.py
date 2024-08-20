@@ -15,7 +15,6 @@ class LlamaArgs:
     ffn_dim_multiplier: Optional[float] = 256
     norm_eps: float = 1e-5
     rope_theta: float = 10000
-    max_batch_size: int = 32
     max_seq_len: int = 2048
     # If `True`, then each transformer block init uses its layer ID, and if
     # `False`, each uses the total number of transformer blocks
@@ -23,3 +22,5 @@ class LlamaArgs:
     norm_type: str = "rmsnorm"
     activation: str = "silu"
     attn_dropout: float = 0.0
+    # now below are fixed and the values here are not used
+    initializer_range: float = 0.02

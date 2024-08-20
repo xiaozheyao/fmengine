@@ -44,8 +44,9 @@ def build_optimizer(model_parts, optimizer_config: OptimizerConfig):
         def zero_grad(self):
             for optimizer in self.optimizers:
                 optimizer.zero_grad()
+
         @property
         def learning_rate(self):
             return self.optimizers[0].param_groups[0]["lr"]
-        
+
     return OptimizersContainer([_build_optimizer(model) for model in model_parts])
