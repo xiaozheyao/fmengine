@@ -2,11 +2,9 @@
 
 #SBATCH --job-name=fmengine
 #SBATCH --container-writable
-#SBATCH --environment=fmengine
 #SBATCH --time=12:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=2
-#SBATCH --contiguous
 #SBATCH --output=logs/slurm-%j.out
 
 cd /fmengine
@@ -26,6 +24,7 @@ MASTER_PORT=6000
 
 COMMAND="
 cd /fmengine
+export PYTHONPATH=/fmengine
 export WANDB_API_KEY=$WANDB_API_KEY
 
 # printing this here again for debugging purposes
@@ -51,7 +50,7 @@ CUDA_DEVICE_MAX_CONNECTIONS=1 torchrun \
     --rdzv_endpoint $MASTER_ADDR:$MASTER_PORT \
     --rdzv_backend c10d \
     fmengine/cli/main.py train \
-    --config /fmengine/examples/tinyllama_dp.yaml
+    --config /configs/tinyllama_dp.yaml
 "
 
 echo $COMMAND
@@ -61,8 +60,8 @@ NAME="run"
 
 srun \
     --unbuffered \
-    --output=$PWD/logs/%x_${NAME}_%j.log \
-    --environment fmengine \
+    --output=$PWD/logs/fmengine_${NAME}_%j.log \
+    --environment /store/swissai/a09/xyao/containers/fmengine.toml \
     --container-writable \
     --jobid $SLURM_JOB_ID \
     --wait 60 \

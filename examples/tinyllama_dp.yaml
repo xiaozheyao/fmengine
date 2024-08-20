@@ -46,10 +46,10 @@ training:
   compile: false
 
 dataset:
-  name: c4
+  name: HuggingFaceFW/fineweb-edu
   stream: true
   seq_len: 2048
-  batch_size: 2
+  batch_size: 64
 
 metrics:
   enable_wb: true
