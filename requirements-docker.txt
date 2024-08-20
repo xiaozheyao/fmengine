@@ -7,7 +7,7 @@ humanize
 wandb
 ninja
 --extra-index-url https://download.pytorch.org/whl/cu124 torchvision torchaudio torchao
-torchdata>=0.7.0
+torchdata @ git+https://github.com/pytorch/data.git@v0.8.0
 transformers
 datasets
 tiktoken
