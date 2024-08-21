@@ -29,6 +29,7 @@ checkpoint:
   create_seed_checkpoint: false
   interval: 2000
   async_mode: disabled
+  export_dtype: bfloat16
 
 
 training:

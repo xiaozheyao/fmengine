@@ -6,6 +6,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=2
 #SBATCH --output=logs/slurm-%j.out
+#SBATCH --contiguous
 
 cd /fmengine
 export PYTHONPATH=/fmengine

@@ -12,3 +12,4 @@ torchdata @ git+https://github.com/pytorch/data.git@v0.8.0
 transformers
 datasets
 tiktoken
+lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3

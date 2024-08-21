@@ -2,8 +2,8 @@ import torch
 from typing import Dict, Any
 from .config_llama import LlamaArgs
 from transformers import LlamaConfig, AutoModelForCausalLM
-
-def to_huggingface(states: Dict[str, Any], config: LlamaArgs):
+ 
+def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs):
     # step 1: create a config file containing the model architecture
     config = LlamaConfig(
         vocab_size=config.vocab_size,
@@ -37,5 +37,10 @@ def to_huggingface(states: Dict[str, Any], config: LlamaArgs):
             new_state_dict[f'model.layers.{i}.mlp.gate_proj.weight'] = states['model'][f'layers.{i}.mlp.w1.weight']
             new_state_dict[f'model.layers.{i}.mlp.down_proj.weight'] = states['model'][f'layers.{i}.mlp.w2.weight']
             new_state_dict[f'model.layers.{i}.mlp.up_proj.weight'] = states['model'][f'layers.{i}.mlp.w3.weight']
+            
+        from fmengine.core.configs import TORCH_DTYPE_MAP
+        export_dtype = TORCH_DTYPE_MAP[export_dtype]
+        new_state_dict = {k: v.to(export_dtype) for k, v in new_state_dict.items()}
         model.load_state_dict(new_state_dict, strict=True, assign=True)
+    model.eval()
     return model, config

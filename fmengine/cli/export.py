@@ -13,7 +13,7 @@ from fmengine.datasets.tokenizer import build_tokenizer
 def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_path: str):
     world_size = int(os.environ.get("WORLD_SIZE", 1))
     assert world_size == 1, "Exporting is only supported in single GPU mode"
-    # ensures calling this function with python main.py instead of torch.distributed.launch
+    # ensures calling this function with python main.py instead of torch.distributed.launch (i.e. torchrun)
     os.environ["RANK"] = "0"
     os.environ["WORLD_SIZE"] = "1"
     os.environ["MASTER_ADDR"] = "localhost"
@@ -38,7 +38,11 @@ def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_p
     tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     dcp.load(states, checkpoint_id=os.path.join(ckpt_path, f"step-{step}"))
     
-    model, hf_config = export_to_huggingface(states, job_config.model)
+    model, hf_config = export_to_huggingface(
+        states,
+        job_config.checkpoint.export_dtype,
+        job_config.model
+    )
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 

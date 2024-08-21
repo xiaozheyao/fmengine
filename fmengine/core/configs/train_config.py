@@ -18,7 +18,7 @@ class CheckpointConfig:
     interval: int = 1000
     interval_type: str = "steps"
     model_weights_only: bool = False
-    export_dtype: str = "float16"
+    export_dtype: str = "bfloat16"
     async_mode: str = "async"
     create_seed_checkpoint: bool = False
 
