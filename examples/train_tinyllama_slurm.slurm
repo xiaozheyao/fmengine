@@ -4,9 +4,8 @@
 #SBATCH --container-writable
 #SBATCH --time=12:00:00
 #SBATCH --ntasks-per-node=1
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --output=logs/slurm-%j.out
-#SBATCH --contiguous
 
 cd /fmengine
 export PYTHONPATH=/fmengine

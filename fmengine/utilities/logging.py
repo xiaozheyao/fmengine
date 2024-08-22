@@ -9,6 +9,7 @@ config = {
             "sink": sys.stdout,
             "enqueue": True,
             "format": "<level>[Rank {extra[rank]}/{extra[world]}] [{time:YYYY-MM-DD HH:mm:ss}] [{level}]:</> {message}",
+            "filter": lambda record: record["extra"].get("rank") == "0",
         },
     ],
     "extra": {
@@ -19,4 +20,3 @@ config = {
 
 
 logger.configure(**config)
-rank0_logger = logger.bind()

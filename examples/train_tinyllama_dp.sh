@@ -1,0 +1,1 @@
+torchrun --nproc-per-node=2 fmengine/cli/main.py train --config=examples/tinyllama_dp.yaml
