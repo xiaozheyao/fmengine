@@ -10,6 +10,7 @@ from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.datasets.tokenizer import build_tokenizer
 from fmengine.cli.utils import enforce_nondistributed_env
 
+
 def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_path: str):
     enforce_nondistributed_env()
     init_distributed(dump_folder=job_config.training.dump_folder)

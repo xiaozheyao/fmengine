@@ -23,6 +23,7 @@ class CheckpointConfig:
     create_seed_checkpoint: bool = False
     finetuned_from: Optional[str] = None
 
+
 @dataclass
 class FP8Config:
     enable_float8_linear: bool = False

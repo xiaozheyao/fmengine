@@ -14,6 +14,7 @@ from fmengine.core.nn import build_lr_scheduler, build_optimizer
 from fmengine.datasets import build_hf_data_loader
 from fmengine.datasets.tokenizer import build_tokenizer
 
+
 def inference_entry(model_id: str, prompt: str, temperature: float, top_k: int, top_p: float):
     pipeline = transformers.pipeline(
         "text-generation",
@@ -43,12 +44,16 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
     if job_config.checkpoint.finetuned_from is not None:
         initialization_required = False
         logger.info(f"Converting pretrained model from {job_config.checkpoint.finetuned_from}")
-        logger.warning(f"The model config from the checkpoint will be used instead of the config from the job config. New configuration will be saved under {job_config.checkpoint.ckpt_dir}/model.yaml")
+        logger.warning(
+            f"The model config from the checkpoint will be used instead of the config from the job config. New configuration will be saved under {job_config.checkpoint.ckpt_dir}/model.yaml"
+        )
 
-        model, config = import_from_huggingface(job_config.model.architecture, job_config.checkpoint.finetuned_from, job_config.checkpoint.export_dtype)
+        model, config = import_from_huggingface(
+            job_config.model.architecture, job_config.checkpoint.finetuned_from, job_config.checkpoint.export_dtype
+        )
 
         with open(f"{config_dir}/model_def.yaml", "w+") as f:
-            OmegaConf.save({'model': config}, f)
+            OmegaConf.save({"model": config}, f)
     else:
         logger.info(f"Building model from scratch")
         with torch.device("meta"):

@@ -34,6 +34,7 @@ def eval(
 ):
     evaluation_entry(model_id, tasks=tasks)
 
+
 @fmengine.command()
 def inference(
     model_id: str = typer.Option(..., help="Path to the model file"),
@@ -45,10 +46,12 @@ def inference(
     output = inference_entry(model_id, prompt, temperature, top_k, top_p)
     print(output)
 
+
 @fmengine.command()
 def prepare_ckpt(config: str = typer.Option(..., help="Path to the config file")):
     parsed_config = parse_train_config(config)
     prepare_ckpt_entry(parsed_config, config)
+
 
 if __name__ == "__main__":
     fmengine()

@@ -20,6 +20,7 @@ def parse_train_config(config: str):
     config = from_dict(data_class=TrainJobConfig, data=config)
     return config
 
+
 def enforce_nondistributed_env():
     world_size = int(os.environ.get("WORLD_SIZE", 1))
     assert world_size == 1, "Exporting is only supported in single GPU mode"
