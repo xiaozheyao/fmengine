@@ -187,20 +187,23 @@ def train_entry(job_config: TrainJobConfig):
 
             # get train batch
             data_load_start = time.perf_counter()
-            batch = next(data_iterator)
-            input_ids, labels = batch
-            ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-            train_state.total_tokens += ntokens_since_last_log 
-            data_loading_times.append(time.perf_counter() - data_load_start)
-            input_ids = input_ids.cuda()
-            labels = labels.cuda()
+            losses = 0
             optimizer.zero_grad()
-
-            with train_context():
-                pred = model(input_ids)
-                loss = cross_entropy_loss(pred, labels)
-                del pred
-                loss.backward()
+            for microbatch_idx in range(job_config.training.accumulate_steps):
+                
+                batch = next(data_iterator)
+                input_ids, labels = batch
+                ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
+                train_state.total_tokens += ntokens_since_last_log 
+                data_loading_times.append(time.perf_counter() - data_load_start)
+                input_ids = input_ids.cuda()
+                labels = labels.cuda()
+                with train_context():
+                    pred = model(input_ids)
+                    loss = cross_entropy_loss(pred, labels)
+                    losses += loss
+                    del pred
+            losses.backward()
 
             for m in model_parts:
                 torch.nn.utils.clip_grad_norm_(m.parameters(), job_config.training.max_norm, foreach=True)
@@ -235,7 +238,9 @@ def train_entry(job_config: TrainJobConfig):
                 # For its definition and calculation, please refer to the PaLM paper:
                 # https://arxiv.org/abs/2204.02311
                 mfu = 100 * num_flop_per_token * tps / gpu_peak_flops / parallel_dims.world_size
-                tpd = ntokens_since_last_log / parallel_dims.world_size
+                
+                tpd = ntokens_since_last_log / time_delta / parallel_dims.world_size
+                
                 time_end_to_end = time_delta / job_config.metrics.log_freq
                 time_data_loading = sum(data_loading_times) / len(data_loading_times)
                 time_data_loading_pct = 100 * sum(data_loading_times) / time_delta
@@ -243,9 +248,9 @@ def train_entry(job_config: TrainJobConfig):
                 gpu_mem_stats = gpu_memory_monitor.get_peak_stats()
 
                 metrics = {
+                    "Total Tokens": train_state.total_tokens,
                     "loss/global_avg_loss": global_avg_loss,
                     "loss/global_max_loss": global_max_loss,
-                    "Total Tokens": train_state.total_tokens,
                     "perf/Tokens Per Second": tps,
                     "perf/MFU (%)": mfu,
                     "perf/Tokens Per Second Per GPU": tpd,

@@ -45,6 +45,7 @@ class TrainingConfig:
     pp_degree: int = 1
     warmup_steps: int = 200
     train_steps: int = 1000
+    accumulate_steps: int = 1
     enable_loss_parallel: bool = False
     data_parallel_type: str = "fsdp"
     dump_folder: str = ".local/output"
@@ -53,6 +54,7 @@ class TrainingConfig:
     max_norm: float = 1.0
     float8: FP8Config = field(default_factory=FP8Config)
     ac_mode: str = "none"
+    cpu_offload: bool = False 
     selective_ac_option: str = "2"
     mixed_precision_param: str = "bfloat16"
     mixed_precision_reduce: str = "float32"
@@ -77,6 +79,8 @@ class DatasetConfig:
 class MetricConfig:
     enable_wb: bool = False
     project_name: str = "fmengine"
+    project_group: str = "fmengine-dev"
+    project_id: Optional[str] = None
     rank_0_only: bool = True
     log_freq: int = 10
 

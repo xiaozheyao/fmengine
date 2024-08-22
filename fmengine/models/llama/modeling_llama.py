@@ -92,6 +92,7 @@ def parallelize_llama(
                 reduce_dtype=TORCH_DTYPE_MAP[train_config.mixed_precision_reduce],
                 tp_enabled=parallel_dims.tp_enabled,
                 pp_enabled=parallel_dims.pp_enabled,
+                cpu_offload=train_config.cpu_offload,
             )
         else:
             if world_mesh.ndim > 1:
