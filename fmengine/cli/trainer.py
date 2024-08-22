@@ -276,10 +276,19 @@ def train_entry(job_config: TrainJobConfig):
                 data_loading_times.clear()
                 time_last_log = time.perf_counter()
                 gpu_memory_monitor.reset_peak_stats()
-                
+
             # explicitly update train state
-            checkpoint.states['train_state'] = train_state
-            print(f"checkpoint.states['train_state']: {checkpoint.states['train_state']}")
+            # TODO(xiaozhe): we should pass a pointer instead of a copy, but I don't know why it doesn't work
+            checkpoint.update_states(
+                train_state.step,
+                force=(train_state.step == job_config.training.train_steps),
+                train_state=train_state,
+                dataloader=data_loader,
+                model_parts=model_parts,
+                optimizers=optimizer.optimizers,
+                lr_schedulers=scheduler.schedulers,
+            )
+
             checkpoint.save(train_state.step, force=(train_state.step == job_config.training.train_steps))
 
             # signal the profiler that the next profiling step has started

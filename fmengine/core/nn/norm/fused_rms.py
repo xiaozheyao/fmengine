@@ -7,6 +7,7 @@ from functools import partial
 from torch.distributed._tensor import Partial, Replicate, Shard
 from torch.distributed._tensor.experimental import local_map
 
+
 @triton.autotune(
     configs=[
         triton.Config({}, num_warps=1),
@@ -226,6 +227,7 @@ def fused_rms_norm_fn(
         weight,
         eps,
     )
+
 
 class FusedRMSNorm(nn.Module):
     """Fused RMS Norm, wraps a fused Triton Kernel"""

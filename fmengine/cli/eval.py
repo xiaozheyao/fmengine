@@ -3,26 +3,30 @@ from typing import Dict, Any, List
 import subprocess
 from fmengine.utilities import logger
 
-def environment_check(use_lm_eval: bool=True):
+
+def environment_check(use_lm_eval: bool = True):
     try:
         import lm_eval
     except ImportError:
-        raise ImportError("lm_eval not found, please install it with `pip install lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3`")
+        raise ImportError(
+            "lm_eval not found, please install it with `pip install lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3`"
+        )
     from shutil import which
+
     if which("lm_eval") is None:
         raise FileNotFoundError("lm_eval not found in PATH, please check your installation.")
     return True
-        
+
 
 def evaluation_entry(
-        hf_ckpt_path: str,
-        backend="lm_eval",
-        tasks: str="",
-        result_path:str=".local/eval/results",        
-        backend_args: Dict[str, Any]={},
-    ):
+    hf_ckpt_path: str,
+    backend="lm_eval",
+    tasks: str = "",
+    result_path: str = ".local/eval/results",
+    backend_args: Dict[str, Any] = {},
+):
     use_lm_eval = False
-    if backend=="lm_eval":
+    if backend == "lm_eval":
         use_lm_eval = True
     else:
         raise NotImplementedError(f"Backend {backend} not implemented.")

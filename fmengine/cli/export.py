@@ -37,12 +37,8 @@ def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_p
     logger.info(f"Loading the checkpoint at step {step}")
     tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     dcp.load(states, checkpoint_id=os.path.join(ckpt_path, f"step-{step}"))
-    
-    model, hf_config = export_to_huggingface(
-        states,
-        job_config.checkpoint.export_dtype,
-        job_config.model
-    )
+
+    model, hf_config = export_to_huggingface(states, job_config.checkpoint.export_dtype, job_config.model)
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 

@@ -4,8 +4,6 @@ import os
 import re
 import shutil
 import time
-from dataclasses import dataclass, field
-from io import BytesIO
 from multiprocessing import get_context
 from typing import Any, Dict, List, Union
 
@@ -26,6 +24,7 @@ from torch.utils.data import DataLoader
 from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.configs.train_config import CheckpointConfig
 from fmengine.utilities.logging import logger
+from .train_state import TrainState
 
 
 class IntervalType(enum.Enum):
@@ -404,3 +403,30 @@ class CheckpointManager:
             for _, path in to_delete:
                 logger.info(f"Deleting old checkpoint {path}")
                 shutil.rmtree(path, ignore_errors=True)
+
+    def update_states(
+        self,
+        curr_step: int,
+        force: bool,
+        train_state: TrainState,
+        dataloader: DataLoader,
+        model_parts: List[nn.Module],
+        optimizers: List[torch.optim.Optimizer],
+        lr_schedulers: List[torch.optim.lr_scheduler.LRScheduler],
+    ):
+        if not self._should_save(curr_step, force):
+            return
+
+        self.states.update(
+            {
+                "model": ModelWrapper(model_parts),
+                "optimizer": OptimizerWrapper(model_parts, optimizers),
+                "dataloader": dataloader,
+                "train_state": train_state,
+            }
+        )
+        if len(lr_schedulers) == 1:
+            self.states["lr_scheduler"] = lr_schedulers[0]
+        else:
+            for idx, lr_scheduler in enumerate(lr_schedulers):
+                self.states[f"lr_scheduler_{idx}"] = lr_scheduler

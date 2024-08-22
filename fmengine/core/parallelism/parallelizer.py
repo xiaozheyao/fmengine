@@ -194,10 +194,12 @@ def apply_compile(model: nn.Module):
     #     model.layers.register_module(layer_id, transformer_block)
 
     # logger.info("Compiling each TransformerBlock with torch.compile")
-    
+
     import os
+
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     model.compile(backend=backend, fullgraph=True)
+
 
 def apply_fsdp(
     model: nn.Module,

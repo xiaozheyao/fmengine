@@ -25,9 +25,9 @@ tokenizer:
   tokenizer_name_or_path: meta-llama/Llama-2-7b-chat-hf
 
 checkpoint:
-  ckpt_dir: .local/ckpts
+  ckpt_dir: /scratch/xiayao/fmengine-outputs/checkpoints/
   create_seed_checkpoint: false
-  interval: 5
+  interval: 1
   async_mode: disabled
 
 training:
