@@ -189,8 +189,8 @@ def train_entry(job_config: TrainJobConfig):
             data_load_start = time.perf_counter()
             batch = next(data_iterator)
             input_ids, labels = batch
-            ntokens_since_last_log += labels.numel()
-            train_state.total_tokens += ntokens_since_last_log
+            ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
+            train_state.total_tokens += ntokens_since_last_log 
             data_loading_times.append(time.perf_counter() - data_load_start)
             input_ids = input_ids.cuda()
             labels = labels.cuda()
@@ -230,12 +230,12 @@ def train_entry(job_config: TrainJobConfig):
                 time_delta = time.perf_counter() - time_last_log
 
                 # tokens per second, abbr. as tps
-                tps = ntokens_since_last_log / (time_delta * parallel_dims.model_parallel_size)
+                tps = ntokens_since_last_log / time_delta
                 # model FLOPS utilization
                 # For its definition and calculation, please refer to the PaLM paper:
                 # https://arxiv.org/abs/2204.02311
-                mfu = 100 * num_flop_per_token * tps / gpu_peak_flops / world_size
-
+                mfu = 100 * num_flop_per_token * tps / gpu_peak_flops / parallel_dims.world_size
+                tpd = ntokens_since_last_log / parallel_dims.world_size
                 time_end_to_end = time_delta / job_config.metrics.log_freq
                 time_data_loading = sum(data_loading_times) / len(data_loading_times)
                 time_data_loading_pct = 100 * sum(data_loading_times) / time_delta
@@ -246,8 +246,9 @@ def train_entry(job_config: TrainJobConfig):
                     "loss/global_avg_loss": global_avg_loss,
                     "loss/global_max_loss": global_max_loss,
                     "Total Tokens": train_state.total_tokens,
-                    "Tokens Per Second": tps,
-                    "MFU (%)": mfu,
+                    "perf/Tokens Per Second": tps,
+                    "perf/MFU (%)": mfu,
+                    "perf/Tokens Per Second Per GPU": tpd,
                     "config/learning_rate": optimizer.learning_rate,
                     "time/end_to_end (s)": time_end_to_end,
                     "time/data_loading (s)": time_data_loading,
