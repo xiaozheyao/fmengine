@@ -7,7 +7,8 @@ from fmengine.core.nn import (
     CausalSelfAttention,
     FeedForward,
     Llama3ScaledRoPE,
-    RMSNorm,
+    # RMSNorm,
+    FusedRMSNorm as RMSNorm,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
@@ -15,7 +16,6 @@ from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsdp, apply_compile, apply_ddp
 
 from .config_llama import LlamaArgs
-from fmengine.utilities import logger
 
 
 def build_llama_3(args: LlamaArgs):
@@ -80,7 +80,6 @@ def parallelize_llama(
     if train_config.ac_mode != "none":
         apply_ac(model, train_config.ac_mode, train_config.selective_ac_option)
     if train_config.compile:
-        logger.info("Compiling enabled")
         apply_compile(model)
     if parallel_dims.dp_enabled:
         if parallel_dims.dp_type == "fsdp":

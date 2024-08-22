@@ -27,7 +27,8 @@ tokenizer:
 checkpoint:
   ckpt_dir: .local/ckpts
   create_seed_checkpoint: false
-  interval: 2000
+  interval: 5
+  async_mode: disabled
 
 training:
   gc_freq: 1000
@@ -53,6 +54,7 @@ dataset:
 metrics:
   enable_wb: true
   log_freq: 1
+  project_name: fmengine-dev
 
 profiling:
   profile_freq: 500

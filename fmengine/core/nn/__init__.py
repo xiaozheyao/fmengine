@@ -2,6 +2,7 @@ from .attention import CausalSelfAttention
 from .embedding import Llama3ScaledRoPE, RotaryPositionalEmbeddings
 from .linear.mlp import FeedForward
 from .norm.rms import RMSNorm
+from .norm.fused_rms import FusedRMSNorm
 from .optimizer.optimizer import build_optimizer
 from .optimizer.scheduler import build_lr_scheduler
 from .transformers import TiedEmbeddingTransformerDecoder, TransformerDecoder, TransformerDecoderLayer
@@ -16,5 +17,6 @@ __all__ = [
     "Llama3ScaledRoPE",
     "RMSNorm",
     "build_optimizer",
+    "FusedRMSNorm",
     "build_lr_scheduler",
 ]

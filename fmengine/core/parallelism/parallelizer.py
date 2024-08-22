@@ -188,12 +188,16 @@ def apply_compile(model: nn.Module):
     Apply torch.compile to each TransformerBlock, which makes compilation efficient due to
     repeated structure. Alternatively one can compile the whole model (after applying DP).
     """
-    for layer_id, transformer_block in model.layers.named_children():
-        transformer_block = torch.compile(transformer_block, fullgraph=True)
-        model.layers.register_module(layer_id, transformer_block)
+    logger.info(f"torch.compile() enabled")
+    # for layer_id, transformer_block in model.layers.named_children():
+    #     transformer_block = torch.compile(transformer_block, fullgraph=True)
+    #     model.layers.register_module(layer_id, transformer_block)
 
-    logger.info("Compiling each TransformerBlock with torch.compile")
-
+    # logger.info("Compiling each TransformerBlock with torch.compile")
+    
+    import os
+    backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    model.compile(backend=backend, fullgraph=True)
 
 def apply_fsdp(
     model: nn.Module,

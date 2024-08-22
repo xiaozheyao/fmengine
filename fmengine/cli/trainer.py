@@ -142,6 +142,8 @@ def train_entry(job_config: TrainJobConfig):
         return
     logger.info(f"current device: {torch.cuda.current_device()}")
     checkpoint_loaded = checkpoint.load()
+    if not checkpoint_loaded:
+        raise ValueError("Failed to load checkpoint, please check.")
     metric_logger = build_metric_logger(job_config, parallel_dims)
 
     if train_state.step > 0:
@@ -274,7 +276,10 @@ def train_entry(job_config: TrainJobConfig):
                 data_loading_times.clear()
                 time_last_log = time.perf_counter()
                 gpu_memory_monitor.reset_peak_stats()
-
+                
+            # explicitly update train state
+            checkpoint.states['train_state'] = train_state
+            print(f"checkpoint.states['train_state']: {checkpoint.states['train_state']}")
             checkpoint.save(train_state.step, force=(train_state.step == job_config.training.train_steps))
 
             # signal the profiler that the next profiling step has started

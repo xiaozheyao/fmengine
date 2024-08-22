@@ -19,3 +19,4 @@ config = {
 
 
 logger.configure(**config)
+rank0_logger = logger.bind()
