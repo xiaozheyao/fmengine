@@ -1,9 +1,7 @@
-import os
 from typing import Any, Dict, Optional, TYPE_CHECKING
 from datetime import datetime
 import torch
 import wandb
-
 
 if TYPE_CHECKING:
     from fmengine.core.configs.train_config import TrainJobConfig
@@ -33,7 +31,6 @@ class MetricLogger:
         # we don't use job_config's enable_wb, as it might be overwritten by the rank_0_only logic
         if enable_wb:
             name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-{job_config.model.architecture}-{job_config.dataset.name}"
-            
             self.run = wandb.init(
                 id=job_config.metrics.project_id,
                 project=project_name,
@@ -50,7 +47,8 @@ class MetricLogger:
             self.run.log(metrics)
 
     def close(self):
-        self.run.finish()
+        if self.run is not None:
+            self.run.finish()
 
 
 def build_metric_logger(job_config: "TrainJobConfig", parallel_dims: "ParallelDims", tag: Optional[str] = None):

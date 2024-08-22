@@ -190,11 +190,11 @@ def train_entry(job_config: TrainJobConfig):
             losses = 0
             optimizer.zero_grad()
             for microbatch_idx in range(job_config.training.accumulate_steps):
-                
+
                 batch = next(data_iterator)
                 input_ids, labels = batch
                 ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-                train_state.total_tokens += ntokens_since_last_log 
+                train_state.total_tokens += ntokens_since_last_log
                 data_loading_times.append(time.perf_counter() - data_load_start)
                 input_ids = input_ids.cuda()
                 labels = labels.cuda()
@@ -238,9 +238,9 @@ def train_entry(job_config: TrainJobConfig):
                 # For its definition and calculation, please refer to the PaLM paper:
                 # https://arxiv.org/abs/2204.02311
                 mfu = 100 * num_flop_per_token * tps / gpu_peak_flops / parallel_dims.world_size
-                
+
                 tpd = ntokens_since_last_log / time_delta / parallel_dims.world_size
-                
+
                 time_end_to_end = time_delta / job_config.metrics.log_freq
                 time_data_loading = sum(data_loading_times) / len(data_loading_times)
                 time_data_loading_pct = 100 * sum(data_loading_times) / time_delta

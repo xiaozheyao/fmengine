@@ -19,3 +19,12 @@ def parse_train_config(config: str):
     config = OmegaConf.to_container(config)
     config = from_dict(data_class=TrainJobConfig, data=config)
     return config
+
+def enforce_nondistributed_env():
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    assert world_size == 1, "Exporting is only supported in single GPU mode"
+    # ensures calling this function with python main.py instead of torch.distributed.launch (i.e. torchrun)
+    os.environ["RANK"] = "0"
+    os.environ["WORLD_SIZE"] = "1"
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "9090"

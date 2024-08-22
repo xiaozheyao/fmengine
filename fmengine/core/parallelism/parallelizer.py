@@ -124,8 +124,7 @@ _save_list = {
 def _apply_ac_to_transformer_block(module: nn.Module, ac_mode: str, selective_ac_option: str):
     valid_ac_modes = ("full", "selective")
     if ac_mode not in valid_ac_modes:
-        raise ValueError(
-            f"Invalid AC mode: {ac_mode}. Valid modes: {valid_ac_modes}")
+        raise ValueError(f"Invalid AC mode: {ac_mode}. Valid modes: {valid_ac_modes}")
 
     if ac_mode == "full":
         return ptd_checkpoint_wrapper(module, preserve_rng_state=False)
@@ -148,8 +147,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_mode: str, selective_ac
                 if func == torch.ops.aten.mm.default:
                     meta[mm_count_key] += 1
                 # Saves output of all compute ops, except every second mm
-                to_save = func in _save_list and not (
-                    func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0)
+                to_save = func in _save_list and not (func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0)
                 return CheckpointPolicy.MUST_SAVE if to_save else CheckpointPolicy.PREFER_RECOMPUTE
 
             return _custom_policy
@@ -177,8 +175,7 @@ def _apply_ac_to_transformer_block(module: nn.Module, ac_mode: str, selective_ac
 def apply_ac(model: nn.Module, ac_mode: str, selective_ac_option: str = "2"):
     """Apply activation checkpointing to the model."""
     for layer_id, transformer_block in model.layers.named_children():
-        transformer_block = _apply_ac_to_transformer_block(
-            transformer_block, ac_mode, selective_ac_option)
+        transformer_block = _apply_ac_to_transformer_block(transformer_block, ac_mode, selective_ac_option)
         model.layers.register_module(layer_id, transformer_block)
 
     logger.info(f"Applied {ac_mode} activation checkpointing to the model")
@@ -214,8 +211,7 @@ def apply_fsdp(
     """
     Apply data parallelism to the model. FSDP2 is used here.
     """
-    mp_policy = MixedPrecisionPolicy(
-        param_dtype=param_dtype, reduce_dtype=reduce_dtype)
+    mp_policy = MixedPrecisionPolicy(param_dtype=param_dtype, reduce_dtype=reduce_dtype)
     offload_policy = CPUOffloadPolicy(pin_memory=True)
     fsdp_config = {"mesh": dp_mesh, "mp_policy": mp_policy}
 
@@ -241,12 +237,13 @@ def apply_fsdp(
             offload_policy=offload_policy if cpu_offload else None,
         )
     fully_shard(
-        model, 
+        model,
         **fsdp_config,
         reshard_after_forward=not pp_enabled,
-        offload_policy=offload_policy if cpu_offload else None
+        offload_policy=offload_policy if cpu_offload else None,
     )
     logger.info("Applied FSDP to the model")
+
 
 def apply_ddp(
     model: nn.Module,

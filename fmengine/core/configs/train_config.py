@@ -21,7 +21,7 @@ class CheckpointConfig:
     export_dtype: str = "bfloat16"
     async_mode: str = "async"
     create_seed_checkpoint: bool = False
-
+    finetuned_from: Optional[str] = None
 
 @dataclass
 class FP8Config:
@@ -54,7 +54,7 @@ class TrainingConfig:
     max_norm: float = 1.0
     float8: FP8Config = field(default_factory=FP8Config)
     ac_mode: str = "none"
-    cpu_offload: bool = False 
+    cpu_offload: bool = False
     selective_ac_option: str = "2"
     mixed_precision_param: str = "bfloat16"
     mixed_precision_reduce: str = "float32"

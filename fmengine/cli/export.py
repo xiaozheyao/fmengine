@@ -8,17 +8,10 @@ from fmengine.models.builder import build_model, export_to_huggingface
 from fmengine.utilities import logger
 from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.datasets.tokenizer import build_tokenizer
-
+from fmengine.cli.utils import enforce_nondistributed_env
 
 def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_path: str):
-    world_size = int(os.environ.get("WORLD_SIZE", 1))
-    assert world_size == 1, "Exporting is only supported in single GPU mode"
-    # ensures calling this function with python main.py instead of torch.distributed.launch (i.e. torchrun)
-    os.environ["RANK"] = "0"
-    os.environ["WORLD_SIZE"] = "1"
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "9090"
-
+    enforce_nondistributed_env()
     init_distributed(dump_folder=job_config.training.dump_folder)
     with torch.device("meta"):
         model = build_model(job_config.model)
@@ -45,6 +38,5 @@ def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_p
     model.save_pretrained(output_path)
     hf_config.save_pretrained(output_path)
     tokenizer.save_pretrained(output_path)
-
     torch.distributed.destroy_process_group()
     return True
