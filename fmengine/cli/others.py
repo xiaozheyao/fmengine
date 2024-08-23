@@ -7,7 +7,7 @@ from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.core.configs.train_config import TrainJobConfig
 from fmengine.cli.utils import enforce_nondistributed_env
 from fmengine.models.builder import import_from_huggingface
-from fmengine.utilities import logger
+from fmengine.utilities import logger, auto_patch
 from fmengine.models.builder import build_model
 from fmengine.core.checkpoint import CheckpointManager, TrainState
 from fmengine.core.nn import build_lr_scheduler, build_optimizer
@@ -34,6 +34,7 @@ def inference_entry(model_id: str, prompt: str, temperature: float, top_k: int, 
 
 
 def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
+    auto_patch()
     enforce_nondistributed_env()
     train_state = TrainState()
     initialization_required = True
