@@ -41,23 +41,27 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
     config_dir = os.path.dirname(config_file)
     init_distributed(dump_folder=job_config.training.dump_folder)
     os.makedirs(job_config.checkpoint.ckpt_dir, exist_ok=True)
+    torch.cuda.set_device(f"cuda:0")
+    
     if job_config.checkpoint.finetuned_from is not None:
         initialization_required = False
         logger.info(f"Converting pretrained model from {job_config.checkpoint.finetuned_from}")
         logger.warning(
-            f"The model config from the checkpoint will be used instead of the config from the job config. New configuration will be saved under {job_config.checkpoint.ckpt_dir}/model.yaml"
+            f"The model config from the checkpoint will be used instead of the config from the job config. New configuration will be saved under {config_dir}/model_def.yaml"
         )
-
         model, config = import_from_huggingface(
             job_config.model.architecture, job_config.checkpoint.finetuned_from, job_config.checkpoint.export_dtype
         )
-
         with open(f"{config_dir}/model_def.yaml", "w+") as f:
             OmegaConf.save({"model": config}, f)
+   
     else:
+        
         logger.info(f"Building model from scratch")
         with torch.device("meta"):
             model = build_model(job_config.model)
+        model.to_empty(device="cpu")
+    
     model_parts = [model]
 
     for mod in model_parts:

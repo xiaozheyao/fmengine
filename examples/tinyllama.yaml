@@ -64,6 +64,6 @@ profiling:
   profile_freq: 500
 
 optimizer:
-  name: adamw
+  name: adamw # adam, adamw
   lr: 1e-3
   fused: true

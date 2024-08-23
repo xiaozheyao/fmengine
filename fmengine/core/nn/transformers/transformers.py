@@ -5,9 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from fmengine.core.nn import CausalSelfAttention, FeedForward
-
 from .utils import _get_clones
-
 
 class TransformerDecoderLayer(nn.Module):
     def __init__(
@@ -102,7 +100,6 @@ class TransformerDecoderLayer(nn.Module):
         self.mlp.init_weights(init_std)
         for norm in [self.self_attn_norm, self.mlp_norm]:
             norm.reset_parameters()
-
 
 class TransformerDecoder(nn.Module):
     """

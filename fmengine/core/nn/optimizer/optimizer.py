@@ -10,25 +10,32 @@ def build_optimizer(model_parts, optimizer_config: OptimizerConfig):
 
     def _build_optimizer(model):
         name = optimizer_config.name
-        lr = optimizer_config.lr
-        fused = optimizer_config.fused
 
         # Common parameters for both optimizers
         optimizer_kwargs = {
-            "lr": lr,
+            "lr": optimizer_config.lr,
             "betas": optimizer_config.betas,
             "weight_decay": optimizer_config.weight_decay,
             "fused": optimizer_config.fused,
-            "foreach": not fused,
+            "foreach": not optimizer_config.fused,
         }
         if name == "adam":
             # TODO: make the optimizer options configurable by toml/cmd args
             optimizer = torch.optim.Adam(model.parameters(), **optimizer_kwargs)
         elif name == "adamw":
             optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
+        elif name == "apex_adam":
+            raise NotImplementedError("Apex Adam optimizer is not supported yet.")
+            from apex.optimizers import FusedAdam
+            optimizer_kwargs.pop("fused")
+            optimizer_kwargs.pop("foreach")
+            # apex optimizers require models to be on gpu
+            if not torch.cuda.is_available():
+                raise ValueError("Apex optimizers require models to be on GPU, but torch.cuda is not available.")
+            model = model.to("cuda")
+            optimizer = FusedAdam(model.parameters(), **optimizer_kwargs)
         else:
             raise NotImplementedError(f"Optimizer {name} not added.")
-
         return optimizer
 
     class OptimizersContainer:
