@@ -1,4 +1,5 @@
 import typer
+from typing import Optional
 from fmengine.cli.trainer import train_entry
 from fmengine.cli.utils import parse_train_config
 from fmengine.cli.export import export_entry
@@ -42,8 +43,9 @@ def inference(
     temperature: float = typer.Option(0.5, help="Temperature for sampling"),
     top_k: int = typer.Option(50, help="Top k for sampling"),
     top_p: float = typer.Option(0.9, help="Top p for sampling"),
+    revision: Optional[str] = typer.Option(None, help="Revision of the model"),
 ):
-    output = inference_entry(model_id, prompt, temperature, top_k, top_p)
+    output = inference_entry(model_id, revision, prompt, temperature, top_k, top_p)
     print(output)
 
 

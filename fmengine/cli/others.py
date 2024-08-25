@@ -4,6 +4,7 @@ import transformers
 from omegaconf import OmegaConf
 from torch.fx import GraphModule
 from fmengine.core.parallelism.distributed import init_distributed
+from typing import Optional
 from fmengine.core.configs.train_config import TrainJobConfig
 from fmengine.cli.utils import enforce_nondistributed_env
 from fmengine.models.builder import import_from_huggingface
@@ -15,11 +16,12 @@ from fmengine.datasets import build_hf_data_loader
 from fmengine.datasets.tokenizer import build_tokenizer
 
 
-def inference_entry(model_id: str, prompt: str, temperature: float, top_k: int, top_p: float):
+def inference_entry(model_id: str, revision:Optional[str], prompt: str, temperature: float, top_k: int, top_p: float):
     pipeline = transformers.pipeline(
         "text-generation",
         model=model_id,
         do_sample=True,
+        revision=revision,
         model_kwargs={"torch_dtype": torch.bfloat16},
         device="cuda",
         max_new_tokens=128,
