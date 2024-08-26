@@ -106,3 +106,7 @@ class TrainJobConfig:
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
+
+@dataclass
+class AutoOptimizationFlags:
+    use_transformer_engine: bool = False

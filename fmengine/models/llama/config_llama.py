@@ -24,3 +24,4 @@ class LlamaArgs:
     attn_dropout: float = 0.0
     # now below are fixed and the values here are not used
     initializer_range: float = 0.02
+    torch_dtype: str = "bfloat16"

@@ -3,8 +3,7 @@ from typing import Optional
 from torch import Tensor, nn
 
 from fmengine.core.nn.utils import KVCache
-
-
+    
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/abs/2305.13245v1.
@@ -195,7 +194,6 @@ class CausalSelfAttention(nn.Module):
         # shape: [b, 1, s, s]
         if mask is not None:
             mask = mask[:, None, :, :]
-
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
             q,

@@ -1,14 +1,16 @@
-from typing import Union, Dict, Any, Tuple
+from typing import Union, Dict, Any, Tuple, TYPE_CHECKING
 
 from .llama.config_llama import LlamaArgs
 from transformers import AutoModelForCausalLM, AutoConfig
 
+if TYPE_CHECKING:
+    from fmengine.core.configs.train_config import AutoOptimizationFlags
 
-def build_model(model_config: Union[LlamaArgs]):
+def build_model(model_config: Union[LlamaArgs], ao_flags: "AutoOptimizationFlags"):
     if model_config.architecture == "llama":
         from .llama.modeling_llama import build_llama_3
 
-        return build_llama_3(model_config)
+        return build_llama_3(model_config, ao_flags)
     else:
         raise NotImplementedError(f"Architecture {model_config.architecture} not implemented.")
 

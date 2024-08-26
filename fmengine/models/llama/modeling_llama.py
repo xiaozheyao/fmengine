@@ -1,6 +1,6 @@
 import torch.nn as nn
 from torch.distributed import DeviceMesh
-
+from typing import TYPE_CHECKING
 from fmengine.core.configs.train_config import TrainingConfig
 from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.nn import (
@@ -9,6 +9,7 @@ from fmengine.core.nn import (
     Llama3ScaledRoPE,
     # RMSNorm,
     FusedRMSNorm as RMSNorm,
+    # LigerRMSNorm as RMSNorm,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
@@ -16,9 +17,10 @@ from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsdp, apply_compile, apply_ddp
 
 from .config_llama import LlamaArgs
+if TYPE_CHECKING:
+    from fmengine.core.configs.train_config import AutoOptimizationFlags
 
-
-def build_llama_3(args: LlamaArgs):
+def build_llama_3(args: LlamaArgs, ao_flags: "AutoOptimizationFlags"):
     head_dim = args.hidden_size // args.n_heads
     num_kv_heads = args.n_kv_heads if args.n_kv_heads is not None else args.n_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=args.max_seq_len, base=args.rope_theta)
