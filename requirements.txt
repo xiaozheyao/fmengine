@@ -13,5 +13,4 @@ transformers
 datasets
 tiktoken
 lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3
-triton
 liger-kernel
