@@ -7,6 +7,7 @@ from .monitor import build_gpu_memory_monitor, get_peak_flops
 from .others import _warn_overwrite_env, dist_max, dist_mean, get_num_flop_per_token, Color, set_pg_timeouts
 from .profiler import maybe_enable_memory_snapshot, maybe_enable_profiling
 from .patch_utility import auto_patch
+from .precision import set_default_dtype
 
 __all__ = [
     "InstantiationError",
@@ -27,4 +28,5 @@ __all__ = [
     "Color",
     "set_pg_timeouts",
     "auto_patch",
+    "set_default_dtype",
 ]

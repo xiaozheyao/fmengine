@@ -34,6 +34,7 @@ from fmengine.utilities import (
     Color,
     set_pg_timeouts,
     auto_patch,
+    set_default_dtype,
 )
 
 
@@ -52,7 +53,6 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
 
 @record
 def train_entry(job_config: TrainJobConfig):
-    torch.set_default_dtype(TORCH_DTYPE_MAP[job_config.model.torch_dtype])
     ao_flags = auto_patch()
     gc_handler = GarbageCollection()
     world_size = int(os.environ["WORLD_SIZE"])
@@ -77,7 +77,7 @@ def train_entry(job_config: TrainJobConfig):
     else:
         dp_degree, dp_rank = 1, 0
     # build model
-    with torch.device("meta"):
+    with torch.device("meta"), set_default_dtype(TORCH_DTYPE_MAP[job_config.model.torch_dtype]):
         model = build_model(job_config.model, ao_flags)
     # todo(xiaozhe): handle fp8 here
     logger.info(model)

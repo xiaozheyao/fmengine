@@ -5,10 +5,11 @@ from omegaconf import OmegaConf
 from torch.fx import GraphModule
 from fmengine.core.parallelism.distributed import init_distributed
 from typing import Optional
+from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.configs.train_config import TrainJobConfig
 from fmengine.cli.utils import enforce_nondistributed_env
 from fmengine.models.builder import import_from_huggingface
-from fmengine.utilities import logger, auto_patch
+from fmengine.utilities import logger, auto_patch, set_default_dtype
 from fmengine.models.builder import build_model
 from fmengine.core.checkpoint import CheckpointManager, TrainState
 from fmengine.core.nn import build_lr_scheduler, build_optimizer
@@ -36,7 +37,7 @@ def inference_entry(model_id: str, revision:Optional[str], prompt: str, temperat
 
 
 def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
-    auto_patch()
+    ao_flags = auto_patch()
     enforce_nondistributed_env()
     train_state = TrainState()
     initialization_required = True
@@ -57,12 +58,10 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
         )
         with open(f"{config_dir}/model_def.yaml", "w+") as f:
             OmegaConf.save({"model": config}, f)
-   
     else:
-        
         logger.info(f"Building model from scratch")
-        with torch.device("meta"):
-            model = build_model(job_config.model)
+        with torch.device("meta"), set_default_dtype(TORCH_DTYPE_MAP[job_config.model.torch_dtype]):
+            model = build_model(job_config.model, ao_flags)
         model.to_empty(device="cpu")
     
     model_parts = [model]
