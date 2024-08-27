@@ -1,5 +1,5 @@
 sphinx-autobuild
 myst-parser
-furo
 sphinxext-opengraph
 sphinx-copybutton
+sphinx-rtd-theme
