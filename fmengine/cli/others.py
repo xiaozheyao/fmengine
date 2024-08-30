@@ -17,7 +17,7 @@ from fmengine.datasets import build_hf_data_loader
 from fmengine.datasets.tokenizer import build_tokenizer
 
 
-def inference_entry(model_id: str, revision:Optional[str], prompt: str, temperature: float, top_k: int, top_p: float):
+def inference_entry(model_id: str, revision: Optional[str], prompt: str, temperature: float, top_k: int, top_p: float):
     pipeline = transformers.pipeline(
         "text-generation",
         model=model_id,
@@ -46,7 +46,7 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
     init_distributed(dump_folder=job_config.training.dump_folder)
     os.makedirs(job_config.checkpoint.ckpt_dir, exist_ok=True)
     torch.cuda.set_device(f"cuda:0")
-    
+
     if job_config.checkpoint.finetuned_from is not None:
         initialization_required = False
         logger.info(f"Converting pretrained model from {job_config.checkpoint.finetuned_from}")
@@ -63,7 +63,7 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
         with torch.device("meta"), set_default_dtype(TORCH_DTYPE_MAP[job_config.model.torch_dtype]):
             model = build_model(job_config.model, ao_flags)
         model.to_empty(device="cpu")
-    
+
     model_parts = [model]
 
     for mod in model_parts:

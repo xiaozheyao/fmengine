@@ -16,8 +16,7 @@ from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.datasets import build_hf_data_loader
 from fmengine.datasets.tokenizer import build_tokenizer
-from fmengine.models.builder import build_model
-from fmengine.models.llama.modeling_llama import parallelize_llama
+from fmengine.models.builder import build_model, parallelize_model
 from fmengine.models.utils import get_num_params
 
 from fmengine.utilities import (
@@ -56,6 +55,8 @@ def train_entry(job_config: TrainJobConfig):
     ao_flags = auto_patch()
     gc_handler = GarbageCollection()
     world_size = int(os.environ["WORLD_SIZE"])
+    local_rank = int(os.environ["LOCAL_RANK"])
+    logger.info(f"Local rank: {local_rank}, world size: {world_size}")
     parallel_dims = ParallelDims(
         dp=job_config.training.dp_degree,
         tp=job_config.training.tp_degree,
@@ -92,7 +93,7 @@ def train_entry(job_config: TrainJobConfig):
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
     # todo(xiaozhe): apply different parallelize function based on configurations
-    parallelize_llama(model, world_mesh, parallel_dims, train_config=job_config.training)
+    parallelize_model(job_config.model.architecture, model, world_mesh, parallel_dims, train_config=job_config.training)
     init_device = "cpu" if job_config.checkpoint.create_seed_checkpoint else "cuda"
     model.to_empty(device=init_device)
     model_parts = [model]

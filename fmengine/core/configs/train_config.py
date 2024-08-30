@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
-from fmengine.models.llama.config_llama import LlamaArgs
-
+if TYPE_CHECKING:
+    from fmengine.models.llama.config_llama import LlamaArgs
 
 @dataclass
 class TokenizerConfig:
@@ -106,6 +106,7 @@ class TrainJobConfig:
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
+
 
 @dataclass
 class AutoOptimizationFlags:

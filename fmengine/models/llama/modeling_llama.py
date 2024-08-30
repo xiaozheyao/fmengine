@@ -17,8 +17,10 @@ from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsdp, apply_compile, apply_ddp
 
 from .config_llama import LlamaArgs
+
 if TYPE_CHECKING:
     from fmengine.core.configs.train_config import AutoOptimizationFlags
+
 
 def build_llama_3(args: LlamaArgs, ao_flags: "AutoOptimizationFlags"):
     head_dim = args.hidden_size // args.n_heads

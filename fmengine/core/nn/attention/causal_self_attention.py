@@ -3,7 +3,8 @@ from typing import Optional
 from torch import Tensor, nn
 
 from fmengine.core.nn.utils import KVCache
-    
+
+
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/abs/2305.13245v1.

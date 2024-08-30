@@ -9,7 +9,7 @@ model:
   intermediate_size: 5632
   max_seq_len: 2048
   n_heads: 32
-  n_layers: 4
+  n_layers: 1
   n_kv_heads: 16
   rms_norm_eps: 1.0e-05
   rope_theta: 10000
@@ -32,10 +32,10 @@ checkpoint:
 
 training:
   gc_freq: 1000
-  dp_degree: 2
+  dp_degree: 1
   tp_degree: 1
   pp_degree: 1
-  accumulate_steps: 2
+  accumulate_steps: 1
   enable_loss_parallel: true
   data_parallel_type: fsdp
   dump_folder: ./outputs
@@ -55,7 +55,7 @@ dataset:
 metrics:
   enable_wb: true
   log_freq: 1
-  project_name: fmengine-bench
+  project_name: fmengine-dev
   project_group: stf-h100
   project_id: stf-h100-testrun-acc4
 

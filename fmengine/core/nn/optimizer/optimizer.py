@@ -27,6 +27,7 @@ def build_optimizer(model_parts, optimizer_config: OptimizerConfig):
         elif name == "apex_adam":
             raise NotImplementedError("Apex Adam optimizer is not supported yet.")
             from apex.optimizers import FusedAdam
+
             optimizer_kwargs.pop("fused")
             optimizer_kwargs.pop("foreach")
             # apex optimizers require models to be on gpu

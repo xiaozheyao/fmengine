@@ -2,6 +2,7 @@ import torch
 import contextlib
 from typing import Generator
 
+
 @contextlib.contextmanager
 def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
     """

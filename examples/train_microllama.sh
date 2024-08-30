@@ -1,1 +1,1 @@
-torchrun --nproc-per-node=2 fmengine/cli/main.py train --config=examples/microllama.yaml
+torchrun --nproc-per-node=1 fmengine/cli/main.py train --config=examples/microllama.yaml
