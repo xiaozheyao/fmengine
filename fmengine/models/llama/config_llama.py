@@ -19,9 +19,9 @@ class LlamaArgs:
     # If `True`, then each transformer block init uses its layer ID, and if
     # `False`, each uses the total number of transformer blocks
     depth_init: bool = True
-    norm_type: str = "rmsnorm"
+    norm_type: str = "fused_rmsnorm"
     activation: str = "silu"
     attn_dropout: float = 0.0
     # now below are fixed and the values here are not used
     initializer_range: float = 0.02
-    torch_dtype: str = "bfloat16"
+    torch_dtype: str = "float32"

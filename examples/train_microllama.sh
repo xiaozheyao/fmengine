@@ -1,1 +1,1 @@
-torchrun --nproc-per-node=1 fmengine/cli/main.py train --config=examples/microllama.yaml
+OMP_NUM_THREADS=8 torchrun --nproc-per-node=1 fmengine/cli/main.py train --config=examples/microllama.yaml

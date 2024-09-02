@@ -4,12 +4,12 @@ model:
   bos_token_id: 1
   eos_token_id: 2
   activation: silu
-  hidden_size: 2048
+  hidden_size: 1024
   initializer_range: 0.02
   intermediate_size: 5632
   max_seq_len: 2048
   n_heads: 32
-  n_layers: 24
+  n_layers: 32
   n_kv_heads: 4
   rms_norm_eps: 1.0e-05
   rope_theta: 10000
@@ -27,7 +27,7 @@ tokenizer:
 checkpoint:
   ckpt_dir: /scratch/xiayao/fmengine-outputs/checkpoints/
   create_seed_checkpoint: false
-  interval: 2000
+  interval: 4000
   async_mode: async
 
 training:
@@ -50,11 +50,11 @@ dataset:
   # name: c4
   stream: true
   seq_len: 2048
-  batch_size: 4
+  batch_size: 64
 
 metrics:
   enable_wb: true
-  log_freq: 1
+  log_freq: 100
   project_name: fmengine-dev
   project_group: stf-h100
   project_id: stf-h100-testrun-acc4

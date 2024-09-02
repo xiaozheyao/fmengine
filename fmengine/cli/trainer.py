@@ -193,19 +193,19 @@ def train_entry(job_config: TrainJobConfig):
             losses = 0
             optimizer.zero_grad()
             for microbatch_idx in range(job_config.training.accumulate_steps):
-
-                batch = next(data_iterator)
-                input_ids, labels = batch
-                ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-                train_state.total_tokens += ntokens_since_last_log
-                data_loading_times.append(time.perf_counter() - data_load_start)
-                input_ids = input_ids.cuda()
-                labels = labels.cuda()
-                with train_context():
-                    pred = model(input_ids)
-                    loss = cross_entropy_loss(pred, labels)
-                    losses += loss
-                    del pred
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+                    batch = next(data_iterator)
+                    input_ids, labels = batch
+                    ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
+                    train_state.total_tokens += ntokens_since_last_log
+                    data_loading_times.append(time.perf_counter() - data_load_start)
+                    input_ids = input_ids.cuda()
+                    labels = labels.cuda()
+                    with train_context():
+                        pred = model(input_ids)
+                        loss = cross_entropy_loss(pred, labels)
+                        losses += loss
+                        del pred
             losses.backward()
 
             for m in model_parts:

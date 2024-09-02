@@ -1,5 +1,5 @@
+import torch
 from typing import Optional
-
 from torch import Tensor, nn
 
 from fmengine.core.nn.utils import KVCache
@@ -152,6 +152,8 @@ class CausalSelfAttention(nn.Module):
         # q has shape [b, s, num_heads * head_dim]
         # k has shape [b, s, num_kv_heads * head_dim]
         # v has shape [b, s, num_kv_heads * head_dim]
+        # downcast x, qkv proj to bfloat16
+        x = x.to(torch.bfloat16)
         q = self.q_proj(x)
         k = self.k_proj(x)
         v = self.v_proj(x)

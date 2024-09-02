@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Union, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from fmengine.models.llama.config_llama import LlamaArgs
+from fmengine.models.llama.config_llama import LlamaArgs
 
 @dataclass
 class TokenizerConfig:
@@ -97,7 +95,7 @@ class ProfilingConfig:
 
 @dataclass
 class TrainJobConfig:
-    model: Union["LlamaArgs"]
+    model: Union[LlamaArgs]
     tokenizer: TokenizerConfig
     checkpoint: CheckpointConfig
     training: TrainingConfig
