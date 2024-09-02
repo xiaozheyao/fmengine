@@ -37,7 +37,7 @@ from fmengine.utilities import (
 )
 
 
-def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool):
+def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool, enable_mixed_precision: bool):
     @contextlib.contextmanager
     def context():
         with contextlib.ExitStack() as stack:
@@ -45,6 +45,8 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
                 stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
             if enable_compiled_autograd:
                 stack.enter_context(torch._dynamo.utils.maybe_enable_compiled_autograd(True))
+            if enable_mixed_precision:
+                stack.enter_context(torch.autocast(device_type="cuda", dtype=torch.bfloat16))
             yield
 
     return context
@@ -88,7 +90,7 @@ def train_entry(job_config: TrainJobConfig):
     num_flop_per_token = get_num_flop_per_token(
         get_num_params(model, exclude_embedding=True),
         job_config.model,
-        job_config.dataset.seq_len,
+        job_config.train_dataset.seq_len,
     )
     logger.info(f"Model has {humanize.intword(model_param_count)} parameters")
     # todo(xiaozhe): pipeline parallelism enabled
@@ -116,21 +118,32 @@ def train_entry(job_config: TrainJobConfig):
     scheduler = build_lr_scheduler(optimizer.optimizers, job_config)
     tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     # build dataloader
-    data_loader = build_hf_data_loader(
-        job_config.dataset.name,
-        job_config.dataset.path,
-        job_config.dataset.stream,
+    train_data_loader = build_hf_data_loader(
+        job_config.train_dataset.name,
+        job_config.train_dataset.path,
+        job_config.train_dataset.stream,
         tokenizer,
-        job_config.dataset.batch_size,
-        job_config.dataset.seq_len,
+        job_config.train_dataset.batch_size,
+        job_config.train_dataset.seq_len,
         dp_degree,
         dp_rank,
     )
+    if job_config.val_dataset is not None:
+        val_data_loader = build_hf_data_loader(
+            job_config.val_dataset.name,
+            job_config.val_dataset.path,
+            job_config.val_dataset.stream,
+            tokenizer,
+            job_config.val_dataset.batch_size,
+            job_config.val_dataset.seq_len,
+            dp_degree,
+            dp_rank,
+        )
     train_state = TrainState()
 
     # load initial checkpoint
     checkpoint = CheckpointManager(
-        dataloader=data_loader,
+        dataloader=train_data_loader,
         model_parts=model_parts,
         optimizers=optimizer.optimizers,
         lr_schedulers=scheduler.schedulers,
@@ -157,10 +170,13 @@ def train_entry(job_config: TrainJobConfig):
             }
             metric_logger.log(metrics, step=step)
 
-    data_iterator = iter(data_loader)
+    data_iterator = iter(train_data_loader)
+    if job_config.val_dataset is not None:
+        val_data_iterator = iter(val_data_loader)
     train_context = get_train_context(
         parallel_dims.loss_parallel_enabled,
         job_config.experimental.enable_compiled_autograd,
+        enable_mixed_precision=True,
     )
     losses_since_last_log = []
     ntokens_since_last_log = 0
@@ -173,9 +189,9 @@ def train_entry(job_config: TrainJobConfig):
         f"Training starts at step {train_state.step + 1}, "
         f"with {world_size} GPUs, "
         f"total consumed tokens {train_state.total_tokens}, "
-        f"with local batch size {job_config.dataset.batch_size}, "
-        f"global batch size {job_config.dataset.batch_size * dp_degree}, "
-        f"sequence length {job_config.dataset.seq_len}, "
+        f"with local batch size {job_config.train_dataset.batch_size}, "
+        f"global batch size {job_config.train_dataset.batch_size * dp_degree}, "
+        f"sequence length {job_config.train_dataset.seq_len}, "
         f"total steps {job_config.training.train_steps} "
         f"(warmup {job_config.training.warmup_steps})"
     )
@@ -187,25 +203,24 @@ def train_entry(job_config: TrainJobConfig):
         while train_state.step < job_config.training.train_steps:
             train_state.step += 1
             gc_handler.run(train_state.step)
-
             # get train batch
             data_load_start = time.perf_counter()
             losses = 0
             optimizer.zero_grad()
             for microbatch_idx in range(job_config.training.accumulate_steps):
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                    batch = next(data_iterator)
-                    input_ids, labels = batch
-                    ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-                    train_state.total_tokens += ntokens_since_last_log
-                    data_loading_times.append(time.perf_counter() - data_load_start)
-                    input_ids = input_ids.cuda()
-                    labels = labels.cuda()
-                    with train_context():
-                        pred = model(input_ids)
-                        loss = cross_entropy_loss(pred, labels)
-                        losses += loss
-                        del pred
+                batch = next(data_iterator)
+                input_ids, labels = batch
+                ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
+                train_state.total_tokens += ntokens_since_last_log
+                data_loading_times.append(time.perf_counter() - data_load_start)
+                input_ids = input_ids.cuda()
+                labels = labels.cuda()
+                with train_context():
+                    pred = model(input_ids)
+                    loss = cross_entropy_loss(pred, labels)
+                    losses += loss
+                    del pred
+
             losses.backward()
 
             for m in model_parts:
@@ -218,6 +233,22 @@ def train_entry(job_config: TrainJobConfig):
 
             # log metrics
             if train_state.step == 1 or train_state.step % job_config.metrics.log_freq == 0:
+                # forward pass on validation set
+                val_losses = -1
+                if job_config.val_dataset is not None:
+                    model.eval()
+                    with torch.no_grad():
+                        val_losses = 0
+                        for _ in range(job_config.val_dataset.batch_size):
+                            batch = next(val_data_iterator)
+                            input_ids, labels = batch
+                            input_ids = input_ids.cuda()
+                            labels = labels.cuda()
+                            pred = model(input_ids)
+                            val_losses += cross_entropy_loss(pred, labels)
+                            del pred
+                        val_losses /= job_config.val_dataset.batch_size
+                    model.train()
                 losses = [loss.item() for loss in losses_since_last_log]
                 avg_loss, max_loss = sum(losses) / len(losses), max(losses)
                 if parallel_dims.dp_enabled:
@@ -254,6 +285,7 @@ def train_entry(job_config: TrainJobConfig):
                     "Total Tokens": train_state.total_tokens,
                     "loss/global_avg_loss": global_avg_loss,
                     "loss/global_max_loss": global_max_loss,
+                    "loss/val_loss": val_losses,
                     "perf/Tokens Per Second": tps,
                     "perf/MFU (%)": mfu,
                     "perf/Tokens Per Second Per GPU": tpd,
@@ -269,10 +301,10 @@ def train_entry(job_config: TrainJobConfig):
                     "memory/num_ooms": gpu_mem_stats.num_ooms,
                 }
                 metric_logger.log(metrics, step=train_state.step)
-
                 logger.info(
                     f"{color.cyan}step: {train_state.step:2}  "
                     f"{color.green}loss: {global_avg_loss:7.4f}  "
+                    f"{color.green}val_loss: {val_losses:7.4f}  "
                     f"{color.yellow}memory: {gpu_mem_stats.max_reserved_gib:5.2f}GiB"
                     f"({gpu_mem_stats.max_reserved_pct:.2f}%)  "
                     f"{color.blue}tps: {round(tps):,}  "
@@ -292,7 +324,7 @@ def train_entry(job_config: TrainJobConfig):
                 train_state.step,
                 force=(train_state.step == job_config.training.train_steps),
                 train_state=train_state,
-                dataloader=data_loader,
+                dataloader=train_data_loader,
                 model_parts=model_parts,
                 optimizers=optimizer.optimizers,
                 lr_schedulers=scheduler.schedulers,

@@ -5,6 +5,10 @@ from transformers import LlamaConfig, AutoModelForCausalLM
 from fmengine.models.builder import build_model
 
 
+def permute(w, n_heads, dim1, dim2):
+    return w.view(n_heads, dim1 // n_heads // 2, 2, dim2).transpose(1, 2).reshape(dim1, dim2)
+
+
 def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs):
     # step 1: create a config file containing the model architecture
     config = LlamaConfig(
@@ -23,34 +27,45 @@ def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs)
         model = AutoModelForCausalLM.from_config(config)
     # step 2: load the model weights, we need some translation here
     new_state_dict = {}
-    with torch.no_grad():
-        ## step 2.1: handle non-transformer-blocks
-        new_state_dict["model.embed_tokens.weight"] = states["model"]["tok_embeddings.weight"]
-        new_state_dict["model.norm.weight"] = states["model"]["norm.weight"]
-        new_state_dict["lm_head.weight"] = states["model"]["output.weight"]
-        ## step 2.2: handle transformer blocks
+    with torch.inference_mode():
+        states_dicts = states["model"]
+        states_dicts = {k: v.contiguous() for k, v in states_dicts.items()}
+        # step 2.1: handle non-transformer-blocks
+        new_state_dict["model.embed_tokens.weight"] = states_dicts["tok_embeddings.weight"]
+        new_state_dict["model.norm.weight"] = states_dicts["norm.weight"]
+        new_state_dict["lm_head.weight"] = states_dicts["output.weight"]
+        dims_per_head = config.hidden_size // config.num_attention_heads
+
+        # step 2.2: handle transformer blocks
         for i in range(config.num_hidden_layers):
-            new_state_dict[f"model.layers.{i}.self_attn.q_proj.weight"] = states["model"][
-                f"layers.{i}.attn.q_proj.weight"
-            ]
-            new_state_dict[f"model.layers.{i}.self_attn.k_proj.weight"] = states["model"][
-                f"layers.{i}.attn.k_proj.weight"
-            ]
-            new_state_dict[f"model.layers.{i}.self_attn.v_proj.weight"] = states["model"][
-                f"layers.{i}.attn.v_proj.weight"
-            ]
-            new_state_dict[f"model.layers.{i}.self_attn.o_proj.weight"] = states["model"][
+
+            new_state_dict[f"model.layers.{i}.self_attn.q_proj.weight"] = permute(
+                w=states_dicts[f"layers.{i}.attn.q_proj.weight"],
+                n_heads=config.num_attention_heads,
+                dim1=config.hidden_size,
+                dim2=config.hidden_size,
+            )
+
+            new_state_dict[f"model.layers.{i}.self_attn.k_proj.weight"] = permute(
+                w=states_dicts[f"layers.{i}.attn.k_proj.weight"],
+                n_heads=config.num_key_value_heads,
+                dim1=dims_per_head * config.num_key_value_heads,
+                dim2=config.hidden_size,
+            )
+
+            new_state_dict[f"model.layers.{i}.self_attn.v_proj.weight"] = states_dicts[f"layers.{i}.attn.v_proj.weight"]
+            new_state_dict[f"model.layers.{i}.self_attn.o_proj.weight"] = states_dicts[
                 f"layers.{i}.attn.output_proj.weight"
             ]
-            new_state_dict[f"model.layers.{i}.input_layernorm.weight"] = states["model"][
+            new_state_dict[f"model.layers.{i}.input_layernorm.weight"] = states_dicts[
                 f"layers.{i}.self_attn_norm.weight"
             ]
-            new_state_dict[f"model.layers.{i}.post_attention_layernorm.weight"] = states["model"][
+            new_state_dict[f"model.layers.{i}.post_attention_layernorm.weight"] = states_dicts[
                 f"layers.{i}.mlp_norm.weight"
             ]
-            new_state_dict[f"model.layers.{i}.mlp.gate_proj.weight"] = states["model"][f"layers.{i}.mlp.w1.weight"]
-            new_state_dict[f"model.layers.{i}.mlp.down_proj.weight"] = states["model"][f"layers.{i}.mlp.w2.weight"]
-            new_state_dict[f"model.layers.{i}.mlp.up_proj.weight"] = states["model"][f"layers.{i}.mlp.w3.weight"]
+            new_state_dict[f"model.layers.{i}.mlp.gate_proj.weight"] = states_dicts[f"layers.{i}.mlp.w1.weight"]
+            new_state_dict[f"model.layers.{i}.mlp.down_proj.weight"] = states_dicts[f"layers.{i}.mlp.w2.weight"]
+            new_state_dict[f"model.layers.{i}.mlp.up_proj.weight"] = states_dicts[f"layers.{i}.mlp.w3.weight"]
 
         from fmengine.core.configs import TORCH_DTYPE_MAP
 
@@ -58,6 +73,7 @@ def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs)
         new_state_dict = {k: v.to(export_dtype) for k, v in new_state_dict.items()}
         model.load_state_dict(new_state_dict, strict=True, assign=True)
     model.eval()
+
     return model, config
 
 

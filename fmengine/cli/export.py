@@ -29,10 +29,10 @@ def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_p
             raise ValueError(f"No valid checkpoint found in {ckpt_path}")
         step = max(step_counts)
     states = {"model": model.state_dict()}
-    logger.info(f"Loading the checkpoint at step {step}")
+    print(f"Loading the checkpoint at step {step}")
     tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     dcp.load(states, checkpoint_id=os.path.join(ckpt_path, f"step-{step}"))
-
+    model.load_state_dict(states["model"], strict=True)
     model, hf_config = export_to_huggingface(states, job_config.checkpoint.export_dtype, job_config.model)
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -40,5 +40,7 @@ def export_entry(ckpt_path: str, step: int, job_config: TrainJobConfig, output_p
     model.save_pretrained(output_path)
     hf_config.save_pretrained(output_path)
     tokenizer.save_pretrained(output_path)
+
     torch.distributed.destroy_process_group()
+    print(f"Model exported to {output_path}")
     return True

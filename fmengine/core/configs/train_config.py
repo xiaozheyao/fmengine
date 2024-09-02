@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Union, TYPE_CHECKING
 from fmengine.models.llama.config_llama import LlamaArgs
 
+
 @dataclass
 class TokenizerConfig:
     tokenizer_type: str
@@ -101,7 +102,8 @@ class TrainJobConfig:
     training: TrainingConfig
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     experimental: ExperimentalConfig = field(default_factory=ExperimentalConfig)
-    dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    val_dataset: Optional[DatasetConfig] = None
+    train_dataset: DatasetConfig = field(default_factory=DatasetConfig)
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
 

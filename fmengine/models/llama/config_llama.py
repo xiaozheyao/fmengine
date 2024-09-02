@@ -22,6 +22,8 @@ class LlamaArgs:
     norm_type: str = "fused_rmsnorm"
     activation: str = "silu"
     attn_dropout: float = 0.0
+    # torch dtype only specifies the model weights dtype
+    # actual computation is done in bfloat16 with torch.autocast
+    torch_dtype: str = "float32"
     # now below are fixed and the values here are not used
     initializer_range: float = 0.02
-    torch_dtype: str = "float32"

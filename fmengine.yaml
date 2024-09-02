@@ -1,4 +1,4 @@
-name: fmengine
+name: adaml
 channels:
 - conda-forge
 - nvidia/label/cuda-12.4.1

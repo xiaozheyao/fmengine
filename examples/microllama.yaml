@@ -20,6 +20,7 @@ model:
   multiple_of: 1024
   vocab_size: 32000
   norm_type: fused_rmsnorm
+  
 tokenizer:
   tokenizer_type: huggingface
   tokenizer_name_or_path: meta-llama/Llama-2-7b-chat-hf
@@ -45,16 +46,23 @@ training:
   selective_ac_option: "3"
   compile: false # tbd
 
-dataset:
+train_dataset:
   name: HuggingFaceFW/fineweb-edu
   # name: c4
   stream: true
   seq_len: 2048
   batch_size: 32
 
+val_dataset:
+  # name: HuggingFaceFW/fineweb-edu
+  name: c4
+  stream: true
+  seq_len: 2048
+  batch_size: 32
+
 metrics:
   enable_wb: false
-  log_freq: 1
+  log_freq: 50
   project_name: fmengine-dev
   project_group: stf-h100
   project_id: stf-h100-testrun-acc4

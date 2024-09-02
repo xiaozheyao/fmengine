@@ -5,6 +5,7 @@ from fmengine.cli.utils import parse_train_config
 from fmengine.cli.export import export_entry
 from fmengine.cli.eval import evaluation_entry
 from fmengine.cli.others import inference_entry, prepare_ckpt_entry
+from fmengine.cli.generation import generate_entry
 
 fmengine = typer.Typer()
 
@@ -46,6 +47,18 @@ def inference(
     revision: Optional[str] = typer.Option(None, help="Revision of the model"),
 ):
     output = inference_entry(model_id, revision, prompt, temperature, top_k, top_p)
+
+
+@fmengine.command()
+def generate(
+    config: str = typer.Option(..., help="Path to the config file"),
+    prompt: str = typer.Option(..., help="Prompt to generate text"),
+    temperature: float = typer.Option(0.5, help="Temperature for sampling"),
+    top_k: int = typer.Option(50, help="Top k for sampling"),
+    top_p: float = typer.Option(0.9, help="Top p for sampling"),
+):
+    config = parse_train_config(config)
+    output = generate_entry(config, prompt, temperature=temperature, top_k=top_k)
     print(output)
 
 

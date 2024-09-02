@@ -3,8 +3,9 @@ import torch
 import transformers
 from omegaconf import OmegaConf
 from torch.fx import GraphModule
-from fmengine.core.parallelism.distributed import init_distributed
 from typing import Optional
+
+from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.configs.train_config import TrainJobConfig
 from fmengine.cli.utils import enforce_nondistributed_env
@@ -18,22 +19,16 @@ from fmengine.datasets.tokenizer import build_tokenizer
 
 
 def inference_entry(model_id: str, revision: Optional[str], prompt: str, temperature: float, top_k: int, top_p: float):
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model_id,
-        do_sample=True,
-        revision=revision,
-        model_kwargs={"torch_dtype": torch.bfloat16},
-        device="cuda",
-        max_new_tokens=128,
-    )
-    output = pipeline(
-        prompt,
-        temperature=temperature,
-        top_k=top_k,
-        top_p=top_p,
-    )
-    return output
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id, revision=revision)
+    model = transformers.AutoModelForCausalLM.from_pretrained(model_id, revision=revision).to("cuda")
+    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    generation_output = model.generate(**inputs, return_dict_in_generate=True, output_scores=True, max_new_tokens=128)
+
+    print(f"scores (first token): {generation_output.scores[0]}")
+    output_texts = tokenizer.batch_decode(generation_output.sequences, skip_special_tokens=True)
+    print(f"Generated text: {output_texts}")
+    return generation_output
 
 
 def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
