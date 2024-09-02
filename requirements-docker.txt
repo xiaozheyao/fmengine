@@ -12,4 +12,3 @@ transformers
 datasets
 tiktoken
 lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3
-fla @git+https://github.com/sustcsonglin/flash-linear-attention

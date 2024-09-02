@@ -1,4 +1,4 @@
-name: adaml
+name: fmengine
 channels:
 - conda-forge
 - nvidia/label/cuda-12.4.1
@@ -94,4 +94,3 @@ dependencies:
 - tzdata=2024a=h0c530f3_0
 - wheel=0.44.0=pyhd8ed1ab_0
 - xz=5.2.6=h166bdaf_0
-

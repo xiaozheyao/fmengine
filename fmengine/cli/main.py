@@ -33,8 +33,9 @@ def export(
 def eval(
     model_id: str = typer.Option(..., help="Path to the model file"),
     tasks: str = typer.Option(..., help="Comma-separated tasks to evaluate"),
+    num_fewshot: int = typer.Option(0, help="Number of fewshot examples"),
 ):
-    evaluation_entry(model_id, tasks=tasks)
+    evaluation_entry(model_id, tasks=tasks, num_fewshot=num_fewshot)
 
 
 @fmengine.command()

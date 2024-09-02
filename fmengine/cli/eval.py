@@ -1,38 +1,30 @@
 import os
 from typing import Dict, Any, List
-import subprocess
-from fmengine.utilities import logger
-
-
-def environment_check(use_lm_eval: bool = True):
-    try:
-        import lm_eval
-    except ImportError:
-        raise ImportError(
-            "lm_eval not found, please install it with `pip install lm_eval @git+https://github.com/EleutherAI/lm-evaluation-harness.git@v0.4.3`"
-        )
-    from shutil import which
-
-    if which("lm_eval") is None:
-        raise FileNotFoundError("lm_eval not found in PATH, please check your installation.")
-    return True
+import json
 
 
 def evaluation_entry(
     hf_ckpt_path: str,
+    revision: str="main",
     backend="lm_eval",
     tasks: str = "",
     result_path: str = ".local/eval/results",
+    num_fewshot: int = 0,
     backend_args: Dict[str, Any] = {},
 ):
-    use_lm_eval = False
-    if backend == "lm_eval":
-        use_lm_eval = True
-    else:
-        raise NotImplementedError(f"Backend {backend} not implemented.")
-    environment_check(use_lm_eval)
-    os.makedirs(result_path, exist_ok=True)
-    command_args = f"--model hf --model_args pretrained={hf_ckpt_path},dtype=bfloat16 --tasks {tasks} --batch_size auto:4 --device cuda:0 --output_path {result_path}"
-    logger.info(f"Running evaluation with command: lm_eval {command_args}")
-    os.system(f"lm_eval {command_args}")
-    return True
+    try:
+        import lm_eval
+        from lm_eval.utils import make_table
+    except ImportError:
+        raise ImportError("Please install lm_eval to use this command.")
+    
+    lm = lm_eval.models.huggingface.HFLM(pretrained=hf_ckpt_path, revision=revision)
+    task_manager = lm_eval.tasks.TaskManager()
+    tasks = tasks.split(",")
+    results = lm_eval.simple_evaluate(
+        model = lm,
+        tasks=tasks,
+        num_fewshot=num_fewshot,
+        task_manager = task_manager
+    )
+    print(make_table(results))
