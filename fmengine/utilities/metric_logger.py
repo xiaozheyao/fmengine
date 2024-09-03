@@ -30,7 +30,7 @@ class MetricLogger:
     def __init__(self, project_name: str, job_config: "TrainJobConfig", enable_wb: bool):
         # we don't use job_config's enable_wb, as it might be overwritten by the rank_0_only logic
         if enable_wb:
-            name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-{job_config.model.architecture}-{job_config.dataset.name}"
+            name = f"{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-{job_config.model.architecture}-{job_config.train_dataset.name}"
             self.run = wandb.init(
                 id=job_config.metrics.project_id,
                 project=project_name,
