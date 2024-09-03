@@ -18,7 +18,12 @@ def evaluation_entry(
     except ImportError:
         raise ImportError("Please install lm_eval to use this command.")
     
-    lm = lm_eval.models.huggingface.HFLM(pretrained=hf_ckpt_path, revision=revision)
+    lm = lm_eval.models.huggingface.HFLM(
+        pretrained=hf_ckpt_path, 
+        revision=revision,
+        batch_size="auto",
+        max_batch_size=128
+    )
     task_manager = lm_eval.tasks.TaskManager()
     tasks = tasks.split(",")
     results = lm_eval.simple_evaluate(
