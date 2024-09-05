@@ -42,7 +42,7 @@ class MetricLogger:
             self.run = None
 
     def log(self, metrics: Dict[str, Any], step: int):
-        metrics["step"] = step
+        metrics["Step"] = step
         if self.run is not None:
             self.run.log(metrics)
 
