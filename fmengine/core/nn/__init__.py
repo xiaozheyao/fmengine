@@ -15,7 +15,7 @@ try:
 except ImportError:
     print("LigerRMSNorm not found, skipping import")
     LigerRMSNorm = None
-    
+
 __all__ = [
     "FeedForward",
     "CausalSelfAttention",
