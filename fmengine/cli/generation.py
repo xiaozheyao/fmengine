@@ -8,7 +8,7 @@ from fmengine.core.configs.train_config import TrainJobConfig
 from fmengine.utilities import auto_patch
 from fmengine.cli.utils import enforce_nondistributed_env, sample
 from fmengine.core.parallelism.distributed import init_distributed
-from fmengine.datasets.tokenizer import build_tokenizer
+from fmengine.data.tokenizer import build_tokenizer
 
 
 def generate_next_token(

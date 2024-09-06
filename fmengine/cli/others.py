@@ -14,8 +14,8 @@ from fmengine.utilities import logger, auto_patch, set_default_dtype
 from fmengine.models.builder import build_model
 from fmengine.core.checkpoint import CheckpointManager, TrainState
 from fmengine.core.nn import build_lr_scheduler, build_optimizer
-from fmengine.datasets import build_hf_data_loader
-from fmengine.datasets.tokenizer import build_tokenizer
+from fmengine.data import build_hf_data_loader
+from fmengine.data.tokenizer import build_tokenizer
 
 
 def inference_entry(model_id: str, revision: Optional[str], prompt: str, temperature: float, top_k: int, top_p: float):

@@ -4,3 +4,4 @@
 tmp/
 wandb/
 outputs/
+*.egg-info

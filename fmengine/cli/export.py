@@ -7,7 +7,7 @@ from fmengine.core.configs.train_config import TrainJobConfig, AutoOptimizationF
 from fmengine.models.builder import build_model, export_to_huggingface
 from fmengine.utilities import logger
 from fmengine.core.parallelism.distributed import init_distributed
-from fmengine.datasets.tokenizer import build_tokenizer
+from fmengine.data.tokenizer import build_tokenizer
 from fmengine.cli.utils import enforce_nondistributed_env
 
 

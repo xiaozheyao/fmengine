@@ -1,2 +1,14 @@
+[project]
+name = "fmengine"
+version = "0.0.1"
+description = "FMEngine"
+authors = [{ name = "Xiaozhe Yao", email = "askxzyao@gmail.com" }]
+requires-python = ">=3.8"
+readme = "README.md"
+license = { text = "MIT" }
+
 [tool.flake8]
-max-line-length = 88
+max-line-length = 120
+
+[project.scripts]
+fmengine = "fmengine.cli.main:fmengine"

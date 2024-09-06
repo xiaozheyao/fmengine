@@ -14,8 +14,8 @@ from fmengine.core.configs import TORCH_DTYPE_MAP
 from fmengine.core.nn import cross_entropy_loss, build_lr_scheduler, build_optimizer
 from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.core.parallelism.parallel_dims import ParallelDims
-from fmengine.datasets import build_hf_data_loader
-from fmengine.datasets.tokenizer import build_tokenizer
+from fmengine.data import build_hf_data_loader
+from fmengine.data.tokenizer import build_tokenizer
 from fmengine.models.builder import build_model, parallelize_model
 from fmengine.models.utils import get_num_params
 

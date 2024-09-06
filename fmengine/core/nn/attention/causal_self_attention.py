@@ -1,7 +1,7 @@
 import torch
 from typing import Optional
 from torch import Tensor, nn
-
+from triteia.python.ops import sdpa
 from fmengine.core.nn.utils import KVCache
 
 
@@ -152,8 +152,6 @@ class CausalSelfAttention(nn.Module):
         # q has shape [b, s, num_heads * head_dim]
         # k has shape [b, s, num_kv_heads * head_dim]
         # v has shape [b, s, num_kv_heads * head_dim]
-        # downcast x, qkv proj to bfloat16
-        x = x.to(torch.bfloat16)
         q = self.q_proj(x)
         k = self.k_proj(x)
         v = self.v_proj(x)
@@ -186,9 +184,9 @@ class CausalSelfAttention(nn.Module):
         k = self.pos_embeddings(k, input_pos=input_pos)
 
         # [b, n_h, s, h_d]
-        q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
+        # q = q.transpose(1, 2)
+        # k = k.transpose(1, 2)
+        # v = v.transpose(1, 2)
 
         # Update key-value cache
         if self.kv_cache is not None:
@@ -198,17 +196,19 @@ class CausalSelfAttention(nn.Module):
         if mask is not None:
             mask = mask[:, None, :, :]
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+        output = sdpa(
             q,
             k,
             v,
             attn_mask=mask,
             dropout_p=self.attn_dropout,
             is_causal=self.kv_cache is None and mask is None,
+            impl="fa",
         )
 
         # reshape the output to be the same shape as the input
-        output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
+        # output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
+        output = output.contiguous().view(bsz, seq_len, -1)
         return self.output_proj(output)
 
     def init_weights(self, init_std: float):

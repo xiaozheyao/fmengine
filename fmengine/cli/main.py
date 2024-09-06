@@ -7,7 +7,7 @@ from fmengine.cli.eval import evaluation_entry
 from fmengine.cli.others import inference_entry, prepare_ckpt_entry
 from fmengine.cli.generation import generate_entry
 
-fmengine = typer.Typer()
+fmengine = typer.Typer(name="fmengine")
 
 
 @fmengine.command()
