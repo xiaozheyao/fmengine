@@ -9,3 +9,4 @@ WORKDIR /fmengine
 COPY . .
 RUN pip install git+https://github.com/Dao-AILab/flash-attention.git#subdirectory=hopper
 RUN pip install -r requirements-docker.txt
+RUN pip install -e .

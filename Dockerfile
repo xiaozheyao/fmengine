@@ -9,3 +9,4 @@ WORKDIR /fmengine
 COPY . .
 RUN pip install flash-attn --no-build-isolation
 RUN pip install -r requirements-docker.txt
+RUN pip install -e .
