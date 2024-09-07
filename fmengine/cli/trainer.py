@@ -51,6 +51,16 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
 
     return context
 
+def get_eval_context(enable_mixed_precision: bool, mixed_precision_param_dtype: str):
+    @contextlib.contextmanager
+    def context():
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(torch.no_grad())
+            if enable_mixed_precision:
+                stack.enter_context(torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype]))
+            yield
+
+    return context
 
 @record
 def train_entry(job_config: TrainJobConfig):
@@ -177,6 +187,11 @@ def train_entry(job_config: TrainJobConfig):
         parallel_dims.loss_parallel_enabled,
         job_config.experimental.enable_compiled_autograd,
         enable_mixed_precision=True,
+        mixed_precision_param_dtype=job_config.training.mixed_precision_param,
+    )
+    eval_context = get_eval_context(
+        enable_mixed_precision=True,
+        mixed_precision_param_dtype=job_config.training.mixed_precision_param,
     )
     losses_since_last_log = []
     ntokens_since_last_log = 0
@@ -237,7 +252,7 @@ def train_entry(job_config: TrainJobConfig):
                 val_losses = -1
                 if job_config.val_dataset is not None:
                     model.eval()
-                    with torch.no_grad():
+                    with eval_context():
                         val_losses = 0
                         for _ in range(job_config.val_dataset.batch_size):
                             batch = next(val_data_iterator)
