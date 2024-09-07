@@ -27,3 +27,4 @@ class LlamaArgs:
     torch_dtype: str = "float32"
     # now below are fixed and the values here are not used
     initializer_range: float = 0.02
+    attn_impl: str = "fa"

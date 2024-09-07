@@ -20,7 +20,8 @@ model:
   multiple_of: 1024
   vocab_size: 32000
   norm_type: fused_rmsnorm
-  
+  attn_impl: torch
+
 tokenizer:
   tokenizer_type: huggingface
   tokenizer_name_or_path: meta-llama/Llama-2-7b-chat-hf

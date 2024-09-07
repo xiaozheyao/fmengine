@@ -76,6 +76,7 @@ class CausalSelfAttention(nn.Module):
         kv_cache: Optional[KVCache] = None,
         max_seq_len: int = 4096,
         attn_dropout: float = 0.0,
+        attn_impl: str = "fa",
     ) -> None:
         super().__init__()
         if num_heads % num_kv_heads != 0:
@@ -91,7 +92,7 @@ class CausalSelfAttention(nn.Module):
         self.attn_dropout = attn_dropout
         self.head_dim = head_dim
         self.max_seq_len = max_seq_len
-
+        self.attn_impl = attn_impl
         # Set layers
         self.kv_cache = kv_cache
         self.q_proj = q_proj
@@ -202,7 +203,7 @@ class CausalSelfAttention(nn.Module):
             attn_mask=mask,
             dropout=self.attn_dropout,
             is_causal=self.kv_cache is None and mask is None,
-            impl="fa",
+            impl=self.attn_impl,
         )
         if type(output) is tuple:
             output = output[0]

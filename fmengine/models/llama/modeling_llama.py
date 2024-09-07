@@ -37,6 +37,7 @@ def build_llama_3(args: LlamaArgs, ao_flags: "AutoOptimizationFlags"):
         pos_embeddings=rope,
         max_seq_len=args.max_seq_len,
         attn_dropout=args.attn_dropout,
+        attn_impl=args.attn_impl,
     )
     hidden_dim = (
         args.intermediate_dim if args.intermediate_dim is not None else args.hidden_size * args.ffn_dim_multiplier
