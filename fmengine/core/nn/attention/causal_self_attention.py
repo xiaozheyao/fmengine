@@ -195,20 +195,17 @@ class CausalSelfAttention(nn.Module):
         # shape: [b, 1, s, s]
         if mask is not None:
             mask = mask[:, None, :, :]
-        try:
-            output = sdpa(
-                q,
-                k,
-                v,
-                attn_mask=mask,
-                dropout=self.attn_dropout,
-                is_causal=self.kv_cache is None and mask is None,
-                impl="fa",
-            )
-        except:
-            print(f"q.shape, k.shape, v.shape: {q.shape, k.shape, v.shape}")
-            print(f"q.dtype, k.dtype, v.dtype: {q.dtype, k.dtype, v.dtype}")
-            exit(0)
+        output = sdpa(
+            q,
+            k,
+            v,
+            attn_mask=mask,
+            dropout=self.attn_dropout,
+            is_causal=self.kv_cache is None and mask is None,
+            impl="fa",
+        )
+        if type(output) is tuple:
+            output = output[0]
         # reshape the output to be the same shape as the input
         # output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
         output = output.contiguous().view(bsz, seq_len, -1)

@@ -226,7 +226,7 @@ def train_entry(job_config: TrainJobConfig):
                 batch = next(data_iterator)
                 input_ids, labels = batch
                 ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-                train_state.total_tokens += ntokens_since_last_log
+                train_state.total_tokens += labels.numel() * job_config.training.dp_degree
                 data_loading_times.append(time.perf_counter() - data_load_start)
                 input_ids = input_ids.cuda()
                 labels = labels.cuda()
@@ -264,6 +264,7 @@ def train_entry(job_config: TrainJobConfig):
                             del pred
                         val_losses /= job_config.val_dataset.batch_size
                     model.train()
+                    
                 losses = [loss.item() for loss in losses_since_last_log]
                 avg_loss, max_loss = sum(losses) / len(losses), max(losses)
                 if parallel_dims.dp_enabled:
