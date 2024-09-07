@@ -93,6 +93,9 @@ class ProfilingConfig:
     save_memory_snapshot_folder: str = ".local/memory_snapshots"
     profile_freq: int = 10
 
+@dataclass
+class AutoOptimizationFlags:
+    use_transformer_engine: bool = False
 
 @dataclass
 class TrainJobConfig:
@@ -106,8 +109,4 @@ class TrainJobConfig:
     train_dataset: DatasetConfig = field(default_factory=DatasetConfig)
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
-
-
-@dataclass
-class AutoOptimizationFlags:
-    use_transformer_engine: bool = False
+    auth_patch: AutoOptimizationFlags = field(default_factory=AutoOptimizationFlags)

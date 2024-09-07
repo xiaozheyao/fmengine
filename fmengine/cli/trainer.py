@@ -37,7 +37,7 @@ from fmengine.utilities import (
 )
 
 
-def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool, enable_mixed_precision: bool):
+def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool, enable_mixed_precision: bool, mixed_precision_param_dtype: str):
     @contextlib.contextmanager
     def context():
         with contextlib.ExitStack() as stack:
@@ -46,7 +46,7 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
             if enable_compiled_autograd:
                 stack.enter_context(torch._dynamo.utils.maybe_enable_compiled_autograd(True))
             if enable_mixed_precision:
-                stack.enter_context(torch.autocast(device_type="cuda", dtype=torch.bfloat16))
+                stack.enter_context(torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype]))
             yield
 
     return context
