@@ -32,7 +32,7 @@ def inference_entry(model_id: str, revision: Optional[str], prompt: str, tempera
 
 
 def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
-    ao_flags = auto_patch()
+    ao_flags = auto_patch(job_config.auto_patch.use_transformer_engine)
     enforce_nondistributed_env()
     train_state = TrainState()
     initialization_required = True
@@ -73,12 +73,12 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
     tokenizer = build_tokenizer(job_config.tokenizer.tokenizer_type, job_config.tokenizer.tokenizer_name_or_path)
     # build dataloader
     data_loader = build_hf_data_loader(
-        job_config.dataset.name,
-        job_config.dataset.path,
-        job_config.dataset.stream,
+        job_config.train_dataset.name,
+        job_config.train_dataset.path,
+        job_config.train_dataset.stream,
         tokenizer,
-        job_config.dataset.batch_size,
-        job_config.dataset.seq_len,
+        job_config.train_dataset.batch_size,
+        job_config.train_dataset.seq_len,
         1,
         1,
     )

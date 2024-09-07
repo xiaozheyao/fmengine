@@ -67,7 +67,6 @@ metrics:
   project_group: stf-h100
   project_id: stf-h100-testrun-acc4
 
-
 profiling:
   profile_freq: 500
 
@@ -75,3 +74,6 @@ optimizer:
   name: adamw # adam, adamw
   lr: 5e-3
   fused: true
+
+auto_patch:
+  use_transformer_engine: true

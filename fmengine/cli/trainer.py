@@ -54,7 +54,7 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
 
 @record
 def train_entry(job_config: TrainJobConfig):
-    ao_flags = auto_patch()
+    ao_flags = auto_patch(job_config.auto_patch.use_transformer_engine)
     gc_handler = GarbageCollection()
     world_size = int(os.environ["WORLD_SIZE"])
     local_rank = int(os.environ["LOCAL_RANK"])

@@ -109,4 +109,4 @@ class TrainJobConfig:
     train_dataset: DatasetConfig = field(default_factory=DatasetConfig)
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
-    auth_patch: AutoOptimizationFlags = field(default_factory=AutoOptimizationFlags)
+    auto_patch: AutoOptimizationFlags = field(default_factory=AutoOptimizationFlags)
