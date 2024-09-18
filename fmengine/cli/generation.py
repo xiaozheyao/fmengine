@@ -9,7 +9,7 @@ from fmengine.utilities import auto_patch
 from fmengine.cli.utils import enforce_nondistributed_env
 from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.data.tokenizer import build_tokenizer
-from fmengine.core.generator import sample
+from fmengine.generator import sample
 
 
 def generate_next_token(
