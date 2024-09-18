@@ -41,8 +41,9 @@ class MetricLogger:
         else:
             self.run = None
 
-    def log(self, metrics: Dict[str, Any], step: int):
-        metrics["Step"] = step
+    def log(self, metrics: Dict[str, Any], step: int, is_table=False):
+        if not is_table:
+            metrics["Step"] = step
         if self.run is not None:
             self.run.log(metrics)
 

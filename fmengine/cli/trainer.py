@@ -18,6 +18,7 @@ from fmengine.data import build_hf_data_loader
 from fmengine.data.tokenizer import build_tokenizer
 from fmengine.models.builder import build_model, parallelize_model
 from fmengine.models.utils import get_num_params
+from fmengine.callbacks import build_callbacks
 
 from fmengine.utilities import (
     GarbageCollection,
@@ -96,6 +97,8 @@ def train_entry(job_config: TrainJobConfig):
     world_mesh = parallel_dims.build_mesh(device_type="cuda")
     gpu_memory_monitor = build_gpu_memory_monitor()
     gpu_peak_flops = get_peak_flops(gpu_memory_monitor.device_name)
+    # build callbacks first
+    callbacks = build_callbacks(job_config.callbacks)
     if parallel_dims.dp_enabled:
         dp_mesh = world_mesh["dp"]
         dp_degree, dp_rank = dp_mesh.size(), dp_mesh.get_local_rank()
@@ -222,7 +225,6 @@ def train_entry(job_config: TrainJobConfig):
         f"total steps {job_config.training.train_steps} "
         f"(warmup {job_config.training.warmup_steps})"
     )
-
     with (
         maybe_enable_profiling(job_config, global_step=train_state.step) as torch_profiler,
         maybe_enable_memory_snapshot(job_config, global_step=train_state.step) as memory_profiler,
@@ -345,6 +347,16 @@ def train_entry(job_config: TrainJobConfig):
                 data_loading_times.clear()
                 time_last_log = time.perf_counter()
                 gpu_memory_monitor.reset_peak_stats()
+
+            for callback in callbacks:
+                callback.step(
+                    train_state.step,
+                    {
+                        "model": model,
+                        "tokenizer": tokenizer,
+                        "metric_logger": metric_logger,
+                    },
+                )
 
             # explicitly update train state
             # TODO(xiaozhe): we should pass a pointer instead of a copy, but I don't know why it doesn't work

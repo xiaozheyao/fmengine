@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING, List
 from fmengine.models.llama.config_llama import LlamaArgs
 
 
@@ -21,6 +21,12 @@ class CheckpointConfig:
     async_mode: str = "async"
     create_seed_checkpoint: bool = False
     finetuned_from: Optional[str] = None
+
+
+@dataclass
+class CallbackConfig:
+    callback_class: str
+    callback_args: dict
 
 
 @dataclass
@@ -113,3 +119,4 @@ class TrainJobConfig:
     metrics: MetricConfig = field(default_factory=MetricConfig)
     profiling: ProfilingConfig = field(default_factory=ProfilingConfig)
     auto_patch: AutoOptimizationFlags = field(default_factory=AutoOptimizationFlags)
+    callbacks: Optional[List[CallbackConfig]] = None

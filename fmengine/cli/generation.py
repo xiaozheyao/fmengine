@@ -9,28 +9,14 @@ from fmengine.utilities import auto_patch
 from fmengine.cli.utils import enforce_nondistributed_env
 from fmengine.core.parallelism.distributed import init_distributed
 from fmengine.data.tokenizer import build_tokenizer
-from fmengine.generator import sample
-
-
-def generate_next_token(
-    model: nn.Module,
-    input_pos: torch.Tensor,
-    x: torch.Tensor,
-    temperature: float = 1.0,
-    top_k: int = None,
-) -> torch.Tensor:
-    """Generates the next tokens."""
-    # model produces logits in [bsz, seq_length, vocab_size]
-    # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos)[:, -1]
-    return logits, sample(logits, 1e-5, None)
+from fmengine.generator import generate
 
 
 @torch.inference_mode()
 def generate_entry(
     job_config: TrainJobConfig, prompt: str, max_tokens: int = 128, top_k: int = 50, temperature: float = 0.5
 ):
-    ao_flags = auto_patch()
+    ao_flags = auto_patch(job_config.auto_patch.use_transformer_engine)
     enforce_nondistributed_env()
     init_distributed(dump_folder=job_config.training.dump_folder)
     with torch.device("meta"):
@@ -55,37 +41,5 @@ def generate_entry(
     model = model.to(device="cuda", dtype=torch.bfloat16)
     model.eval()
 
-    prompt = tokenizer.encode(prompt, return_tensors="pt").cuda()
-    print(f"Prompt: {prompt}")
-    prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
-
-    bsz, prompt_length = prompt.size()
-    generated_tokens = prompt.clone()
-
-    input_pos = torch.arange(0, model.max_seq_len, device=prompt.device)
-    logits, tokens = generate_next_token(
-        model,
-        input_pos=input_pos[:prompt_length],
-        x=prompt,
-        temperature=temperature,
-        top_k=top_k,
-    )
-    print(f"Logits after first iteration: {logits.shape}")
-    print(f"Logits after first iteration: {logits}")
-
-    generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-    curr_pos = prompt_length
-    for _ in range(max_tokens - 1):
-        curr_input_pos = input_pos[: curr_pos + 1]
-        logits, tokens = generate_next_token(
-            model,
-            input_pos=curr_input_pos,
-            x=generated_tokens,
-            temperature=temperature,
-            top_k=top_k,
-        )
-        generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-        curr_pos += 1
-    decoded_output = tokenizer.decode(generated_tokens[0])
-    torch.distributed.destroy_process_group()
+    decoded_output = generate(model, tokenizer, prompt, max_tokens, temperature, top_k)
     return decoded_output
