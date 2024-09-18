@@ -7,14 +7,13 @@ from fmengine.core.nn import (
     CausalSelfAttention,
     FeedForward,
     Llama3ScaledRoPE,
-    # RMSNorm,
     FusedRMSNorm as RMSNorm,
-    # LigerRMSNorm as RMSNorm,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
 from fmengine.core.parallelism.parallel_dims import ParallelDims
 from fmengine.core.parallelism.parallelizer import apply_tp, apply_ac, apply_fsdp, apply_compile, apply_ddp
+from fmengine.utilities import logger
 
 from .config_llama import LlamaArgs
 
@@ -86,10 +85,14 @@ def parallelize_llama(
         apply_ac(model, train_config.ac_mode, train_config.selective_ac_option)
     if train_config.compile:
         apply_compile(model)
+
     if parallel_dims.dp_enabled:
-        if parallel_dims.dp_type == "fsdp":
-            dp_mesh = world_mesh["dp"] if world_mesh.ndim > 1 else world_mesh
-            assert dp_mesh.mesh_dim_names == ("dp",), dp_mesh.mesh_dim_names
+        if parallel_dims.dp_shard_enabled:
+            if parallel_dims.dp_replicate_enabled:
+                dp_mesh = world_mesh["dp_replicate", "dp_shard"]
+            else:
+                dp_mesh = world_mesh["dp"]
+
             apply_fsdp(
                 model,
                 dp_mesh,
@@ -99,6 +102,10 @@ def parallelize_llama(
                 pp_enabled=parallel_dims.pp_enabled,
                 cpu_offload=train_config.cpu_offload,
             )
+            if parallel_dims.dp_replicate_enabled:
+                logger.info("Applied HSDP to the model")
+            else:
+                logger.info("Applied FSDP to the model")
         else:
             if world_mesh.ndim > 1:
                 raise RuntimeError("DDP has not supported > 1D parallelism")
@@ -108,3 +115,4 @@ def parallelize_llama(
                 enable_compile=train_config.compile,
                 enable_compiled_autograd=train_config.experimental_enable_compiled_autograd,
             )
+            logger.info("Applied DDP to the model")

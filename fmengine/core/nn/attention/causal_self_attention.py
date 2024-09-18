@@ -1,8 +1,8 @@
-import torch
 from typing import Optional
 from torch import Tensor, nn
 from triteia.python.ops import sdpa
 from fmengine.core.nn.utils import KVCache
+from fmengine.utilities import logger
 
 
 class CausalSelfAttention(nn.Module):
@@ -144,12 +144,10 @@ class CausalSelfAttention(nn.Module):
         """
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
-
         if seq_len > self.max_seq_len:
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller " f"than max_seq_len ({self.max_seq_len})"
             )
-
         # q has shape [b, s, num_heads * head_dim]
         # k has shape [b, s, num_kv_heads * head_dim]
         # v has shape [b, s, num_kv_heads * head_dim]
@@ -163,9 +161,9 @@ class CausalSelfAttention(nn.Module):
         # q: [b, s, n_kv, q_per_kv, h_d]
         # k: [b, s, n_kv, 1, h_d]
         # v: [b, s, n_kv, 1, h_d]
-        q = q.view(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-        k = k.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
-        v = v.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
+        q = q.view(bsz, seq_len, -1, q_per_kv, self.head_dim)
+        k = k.view(bsz, seq_len, -1, 1, self.head_dim)
+        v = v.view(bsz, seq_len, -1, 1, self.head_dim)
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim

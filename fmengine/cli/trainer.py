@@ -37,7 +37,12 @@ from fmengine.utilities import (
 )
 
 
-def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool, enable_mixed_precision: bool, mixed_precision_param_dtype: str):
+def get_train_context(
+    enable_loss_parallel: bool,
+    enable_compiled_autograd: bool,
+    enable_mixed_precision: bool,
+    mixed_precision_param_dtype: str,
+):
     @contextlib.contextmanager
     def context():
         with contextlib.ExitStack() as stack:
@@ -46,10 +51,13 @@ def get_train_context(enable_loss_parallel: bool, enable_compiled_autograd: bool
             if enable_compiled_autograd:
                 stack.enter_context(torch._dynamo.utils.maybe_enable_compiled_autograd(True))
             if enable_mixed_precision:
-                stack.enter_context(torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype]))
+                stack.enter_context(
+                    torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype])
+                )
             yield
 
     return context
+
 
 def get_eval_context(enable_mixed_precision: bool, mixed_precision_param_dtype: str):
     @contextlib.contextmanager
@@ -57,10 +65,13 @@ def get_eval_context(enable_mixed_precision: bool, mixed_precision_param_dtype: 
         with contextlib.ExitStack() as stack:
             stack.enter_context(torch.no_grad())
             if enable_mixed_precision:
-                stack.enter_context(torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype]))
+                stack.enter_context(
+                    torch.autocast(device_type="cuda", dtype=TORCH_DTYPE_MAP[mixed_precision_param_dtype])
+                )
             yield
 
     return context
+
 
 @record
 def train_entry(job_config: TrainJobConfig):
@@ -70,7 +81,8 @@ def train_entry(job_config: TrainJobConfig):
     local_rank = int(os.environ["LOCAL_RANK"])
     logger.info(f"Local rank: {local_rank}, world size: {world_size}")
     parallel_dims = ParallelDims(
-        dp=job_config.training.dp_degree,
+        dp_replicate=job_config.training.dp_replicate,
+        dp_shard=job_config.training.dp_shard,
         tp=job_config.training.tp_degree,
         pp=job_config.training.pp_degree,
         world_size=world_size,
@@ -225,8 +237,8 @@ def train_entry(job_config: TrainJobConfig):
             for microbatch_idx in range(job_config.training.accumulate_steps):
                 batch = next(data_iterator)
                 input_ids, labels = batch
-                ntokens_since_last_log += labels.numel() * job_config.training.dp_degree
-                train_state.total_tokens += labels.numel() * job_config.training.dp_degree
+                ntokens_since_last_log += labels.numel() * parallel_dims.dp_degree
+                train_state.total_tokens += labels.numel() * parallel_dims.dp_degree
                 data_loading_times.append(time.perf_counter() - data_load_start)
                 input_ids = input_ids.cuda()
                 labels = labels.cuda()
@@ -264,7 +276,7 @@ def train_entry(job_config: TrainJobConfig):
                             del pred
                         val_losses /= job_config.val_dataset.batch_size
                     model.train()
-                    
+
                 losses = [loss.item() for loss in losses_since_last_log]
                 avg_loss, max_loss = sum(losses) / len(losses), max(losses)
                 if parallel_dims.dp_enabled:

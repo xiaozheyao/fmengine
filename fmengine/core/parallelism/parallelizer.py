@@ -75,7 +75,7 @@ def apply_tp(
     # NOTE: At the cost of model code change, we can accelerate Sequence Parallel
     #       by folding (and unfolding) the batch dimension and the sequence dimension.
     #       Examples can be found at https://github.com/pytorch/torchtitan/pull/437
-    for transformer_block in model.layers:
+    for i, transformer_block in enumerate(model.layers):
         layer_plan = {
             "self_attn_norm": SequenceParallel(),
             "attn": prepare_module_input(
@@ -95,7 +95,8 @@ def apply_tp(
             "mlp.w2": rowwise_parallel(output_layouts=Shard(1)),
             "mlp.w3": colwise_parallel(),
         }
-        parallelize_module(
+
+        model.layers[i] = parallelize_module(
             module=transformer_block,
             device_mesh=tp_mesh,
             parallelize_plan=layer_plan,

@@ -40,7 +40,8 @@ class OptimizerConfig:
 @dataclass
 class TrainingConfig:
     gc_freq: int = 1000
-    dp_degree: int = 1
+    dp_replicate: int = 1
+    dp_shard: int = 1
     tp_degree: int = 1
     pp_degree: int = 1
     warmup_steps: int = 200
@@ -93,9 +94,11 @@ class ProfilingConfig:
     save_memory_snapshot_folder: str = ".local/memory_snapshots"
     profile_freq: int = 10
 
+
 @dataclass
 class AutoOptimizationFlags:
     use_transformer_engine: bool = False
+
 
 @dataclass
 class TrainJobConfig:

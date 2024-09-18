@@ -6,6 +6,7 @@ from torch import Tensor, nn
 
 from fmengine.core.nn import CausalSelfAttention, FeedForward
 from .utils import _get_clones
+from fmengine.utilities import logger
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -82,6 +83,8 @@ class TransformerDecoderLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
+        logger.info(f"x shape: {x.shape}")
+        exit(0)
         attn_out = self.attn(self.self_attn_norm(x), mask=mask, input_pos=input_pos)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]

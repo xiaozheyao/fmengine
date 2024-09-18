@@ -4,7 +4,7 @@ model:
   bos_token_id: 1
   eos_token_id: 2
   activation: silu
-  hidden_size: 1024
+  hidden_size: 2048
   initializer_range: 0.02
   intermediate_dim: 5632
   max_seq_len: 2048
@@ -34,7 +34,8 @@ checkpoint:
 
 training:
   gc_freq: 1000
-  dp_degree: 1
+  dp_replicate: 2
+  dp_shard: 1
   tp_degree: 1
   pp_degree: 1
   accumulate_steps: 1
@@ -46,14 +47,14 @@ training:
   ac_mode: selective
   selective_ac_option: "3"
   compile: false # tbd
-  
+  mixed_precision_param: float16 # bfloat16, float32
 
 train_dataset:
   name: HuggingFaceFW/fineweb-edu
   # name: c4
   stream: true
   seq_len: 2048
-  batch_size: 1
+  batch_size: 48
 
 val_dataset:
   # name: HuggingFaceFW/fineweb-edu
@@ -65,9 +66,9 @@ val_dataset:
 metrics:
   enable_wb: false
   log_freq: 50
-  project_name: fmengine-dev
-  project_group: stf-3090
-  project_id: stf-3090-testrun-acc4
+  project_name: fmengine-debug
+  project_group: stf-h100
+  project_id: stf-h100-testrun-acc4
 
 profiling:
   profile_freq: 500
@@ -78,4 +79,4 @@ optimizer:
   fused: true
 
 auto_patch:
-  use_transformer_engine: true
+  use_transformer_engine: false
