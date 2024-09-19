@@ -7,9 +7,9 @@ model:
   hidden_size: 2048
   initializer_range: 0.02
   intermediate_dim: 5632
-  max_seq_len: 256
+  max_seq_len: 2048
   n_heads: 32
-  n_layers: 1
+  n_layers: 10
   n_kv_heads: 8
   rms_norm_eps: 1.0e-05
   rope_theta: 10000
@@ -34,7 +34,7 @@ checkpoint:
 
 training:
   gc_freq: 1000
-  dp_replicate: 1
+  dp_replicate: 2
   dp_shard: 1
   tp_degree: 1
   pp_degree: 1
@@ -47,23 +47,23 @@ training:
   ac_mode: selective
   selective_ac_option: "3"
   compile: false # tbd
-  mixed_precision_param: float16 # bfloat16, float32
+  mixed_precision_param: bfloat16 # bfloat16, float32
 
 train_dataset:
   name: HuggingFaceFW/fineweb-edu
   stream: true
-  seq_len: 256
-  batch_size: 1
+  seq_len: 2048
+  batch_size: 32
 
 val_dataset:
   name: c4
   stream: true
-  seq_len: 256
-  batch_size: 1
+  seq_len: 2048
+  batch_size: 8
 
 metrics:
   enable_wb: true
-  log_freq: 50
+  log_freq: 10
   project_name: microllama
 
 profiling:
@@ -81,3 +81,4 @@ callbacks:
   - callback_class: fmengine.callbacks.GeneratorValidationCallback
     callback_args: 
       jsonl_path: .local/datasets/test.jsonl
+      freq: 200
