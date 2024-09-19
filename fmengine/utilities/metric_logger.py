@@ -8,8 +8,6 @@ if TYPE_CHECKING:
 
     from fmengine.core.parallelism.parallel_dims import ParallelDims
 
-wandb.require("core")
-
 
 def _get_metrics_rank(parallel_dims: "ParallelDims") -> int:
     """

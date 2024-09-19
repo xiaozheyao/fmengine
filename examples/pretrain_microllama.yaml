@@ -34,7 +34,7 @@ checkpoint:
 
 training:
   gc_freq: 1000
-  dp_replicate: 2
+  dp_replicate: 1
   dp_shard: 1
   tp_degree: 1
   pp_degree: 1
@@ -81,4 +81,4 @@ callbacks:
   - callback_class: fmengine.callbacks.GeneratorValidationCallback
     callback_args: 
       jsonl_path: .local/datasets/test.jsonl
-      freq: 200
+      freq: 10

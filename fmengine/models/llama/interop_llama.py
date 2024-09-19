@@ -1,12 +1,26 @@
 import torch
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING, Optional
 from .config_llama import LlamaArgs
 from transformers import LlamaConfig, AutoModelForCausalLM
 from fmengine.models.builder import build_model
 
+if TYPE_CHECKING:
+    from fmengine.core.configs.train_config import AutoOptimizationFlags
+
 
 def permute(w, n_heads, dim1, dim2):
-    return w.view(n_heads, dim1 // n_heads // 2, 2, dim2).transpose(1, 2).reshape(dim1, dim2)
+    return w.view(n_heads, dim1 // n_heads // 2, 2, dim2).transpose(1, 2).reshape(dim1, dim2).contiguous()
+
+
+def inverse_permute(w, n_heads, dim1, dim2):
+    seq_len = dim1 // n_heads // 2
+    # Reshape y to (n_heads, 2, seq_len, dim2)
+    w = w.view(n_heads, 2, seq_len, dim2)
+    # Transpose dimensions 1 and 2 back to (n_heads, seq_len, 2, dim2)
+    w = w.transpose(1, 2)
+    # Reshape back to (dim1, dim2)
+    w = w.reshape(dim1, dim2)
+    return w.contiguous()
 
 
 def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs):
@@ -38,7 +52,6 @@ def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs)
 
         # step 2.2: handle transformer blocks
         for i in range(config.num_hidden_layers):
-
             new_state_dict[f"model.layers.{i}.self_attn.q_proj.weight"] = permute(
                 w=states_dicts[f"layers.{i}.attn.q_proj.weight"],
                 n_heads=config.num_attention_heads,
@@ -77,7 +90,7 @@ def to_huggingface(states: Dict[str, Any], export_dtype: str, config: LlamaArgs)
     return model, config
 
 
-def from_huggingface(pretrained_model_id_or_path: str, load_dtype: str):
+def from_huggingface(pretrained_model_id_or_path: str, load_dtype: str, ao_flags: Optional["AutoOptimizationFlags"]):
     from fmengine.core.configs import TORCH_DTYPE_MAP
 
     model = AutoModelForCausalLM.from_pretrained(pretrained_model_id_or_path, torch_dtype=TORCH_DTYPE_MAP[load_dtype])
@@ -95,15 +108,28 @@ def from_huggingface(pretrained_model_id_or_path: str, load_dtype: str):
         rope_theta=config.rope_theta,
     )
     with torch.device("meta"):
-        fmengine_model = build_model(fmengine_config)
+        fmengine_model = build_model(fmengine_config, ao_flags)
     model_state_dict = {}
     with torch.no_grad():
         model_state_dict["tok_embeddings.weight"] = state_dict["model.embed_tokens.weight"]
         model_state_dict["norm.weight"] = state_dict["model.norm.weight"]
         model_state_dict["output.weight"] = state_dict["lm_head.weight"]
+        dims_per_head = config.hidden_size // config.num_attention_heads
+
         for i in range(config.num_hidden_layers):
-            model_state_dict[f"layers.{i}.attn.q_proj.weight"] = state_dict[f"model.layers.{i}.self_attn.q_proj.weight"]
-            model_state_dict[f"layers.{i}.attn.k_proj.weight"] = state_dict[f"model.layers.{i}.self_attn.k_proj.weight"]
+            model_state_dict[f"layers.{i}.attn.q_proj.weight"] = inverse_permute(
+                w=state_dict[f"model.layers.{i}.self_attn.q_proj.weight"],
+                n_heads=config.num_attention_heads,
+                dim1=config.hidden_size,
+                dim2=config.hidden_size,
+            )
+
+            model_state_dict[f"layers.{i}.attn.k_proj.weight"] = inverse_permute(
+                w=state_dict[f"model.layers.{i}.self_attn.k_proj.weight"],
+                n_heads=config.num_key_value_heads,
+                dim1=dims_per_head * config.num_key_value_heads,
+                dim2=config.hidden_size,
+            )
             model_state_dict[f"layers.{i}.attn.v_proj.weight"] = state_dict[f"model.layers.{i}.self_attn.v_proj.weight"]
             model_state_dict[f"layers.{i}.attn.output_proj.weight"] = state_dict[
                 f"model.layers.{i}.self_attn.o_proj.weight"

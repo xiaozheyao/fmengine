@@ -1,0 +1,75 @@
+model:
+  architecture: llama
+  hidden_size: 2048
+  n_layers: 22
+  n_heads: 32
+  intermediate_dim: 5632
+  n_kv_heads: 4
+  vocab_size: 32000
+  multiple_of: 256
+  ffn_dim_multiplier: 256.0
+  norm_eps: 1.0e-05
+  rope_theta: 10000.0
+  max_seq_len: 2048
+  depth_init: true
+  norm_type: fused_rmsnorm
+  activation: silu
+  attn_dropout: 0.0
+  torch_dtype: bfloat16
+  initializer_range: 0.02
+  attn_impl: torch
+
+tokenizer:
+  tokenizer_type: huggingface
+  tokenizer_name_or_path: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+checkpoint:
+  ckpt_dir: .local/checkpoints-micro/
+  create_seed_checkpoint: false
+  interval: 2000
+  async_mode: async
+  finetuned_from: TinyLlama/TinyLlama_v1.1
+
+training:
+  gc_freq: 1000
+  dp_replicate: 1
+  dp_shard: 1
+  tp_degree: 1
+  pp_degree: 1
+  accumulate_steps: 1
+  enable_loss_parallel: true
+  data_parallel_type: fsdp
+  dump_folder: ./outputs
+  train_steps: 100000
+  warmup_steps: 20000
+  ac_mode: full
+  compile: false # tbd
+  mixed_precision_param: bfloat16 # bfloat16, float32
+
+train_dataset:
+  name: HuggingFaceFW/fineweb-edu
+  stream: true
+  seq_len: 2048
+  batch_size: 2
+
+metrics:
+  enable_wb: true
+  log_freq: 10
+  project_name: microllama
+
+profiling:
+  profile_freq: 500
+
+optimizer:
+  name: adamw # adam, adamw
+  lr: 1e-5
+  fused: true
+
+auto_patch:
+  use_transformer_engine: false
+
+callbacks:
+  - callback_class: fmengine.callbacks.GeneratorValidationCallback
+    callback_args: 
+      jsonl_path: .local/datasets/test.jsonl
+      freq: 50

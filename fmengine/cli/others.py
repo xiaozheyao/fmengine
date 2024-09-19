@@ -49,7 +49,10 @@ def prepare_ckpt_entry(job_config: TrainJobConfig, config_file: str):
             f"The model config from the checkpoint will be used instead of the config from the job config. New configuration will be saved under {config_dir}/model_def.yaml"
         )
         model, config = import_from_huggingface(
-            job_config.model.architecture, job_config.checkpoint.finetuned_from, job_config.checkpoint.export_dtype
+            job_config.model.architecture,
+            job_config.checkpoint.finetuned_from,
+            job_config.checkpoint.export_dtype,
+            ao_flags,
         )
         with open(f"{config_dir}/model_def.yaml", "w+") as f:
             OmegaConf.save({"model": config}, f)
