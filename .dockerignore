@@ -1,0 +1,6 @@
+.local
+wandb
+outputs/
+*.egg-info
+docs/
+scripts/

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from fmengine.core.configs.train_config import AutoOptimizationFlags
 
 
-def build_llama_3(args: LlamaArgs, ao_flags: Optional["AutoOptimizationFlags"]):
+def build_llama_3(args: LlamaArgs, ao_flags: Optional["AutoOptimizationFlags"]) -> nn.Module:
     head_dim = args.hidden_size // args.n_heads
     num_kv_heads = args.n_kv_heads if args.n_kv_heads is not None else args.n_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=args.max_seq_len, base=args.rope_theta)
